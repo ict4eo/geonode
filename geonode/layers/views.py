@@ -59,6 +59,10 @@ from geonode.documents.models import get_related_documents
 from geonode.utils import ogc_server_settings
 from geoserver.resource import FeatureType
 
+# added by ict4eo for sos
+from ows import sos_swe_data_list, sos_observation_xml
+
+
 logger = logging.getLogger("geonode.layers.views")
 
 
@@ -698,3 +702,25 @@ def feature_edit_check(request, layername):
         return HttpResponse(json.dumps({'authorized': True}), mimetype="application/json")
     else:
         return HttpResponse(json.dumps({'authorized': False}), mimetype="application/json")
+
+
+## added by ict4eo for sos
+################################## SOS DATA ##################################
+
+def sos_layer_csv(request, layername):
+    import csv
+    #layer = _resolve_layer(request, layername, 'layers.view_layer', _PERMISSION_MSG_VIEW)
+    #need to get SOS url from layer attributes ???
+    test = 'http://ict4eo.meraka.csir.co.za/AMD_SOS/sos'  # should be None
+    #if 'sos_url' in request.GET and request.GET['sos_url'] or test:
+    if test:
+        url = request.GET['sos_url'] or test
+        feature = request.GET['feature']
+        XML = sos_observation_xml(url, allProperties=True, feature=feature)
+        lists = sos_swe_data_list(XML)
+        print "One FOI, all props: %s items" % len(lists)
+        response = HttpResponse(mimetype='text/csv')
+        response['Content-Disposition'] = 'attachment;filename=sos.csv'
+        writer = csv.writer(response)
+        writer.writerows(lists)
+        return response

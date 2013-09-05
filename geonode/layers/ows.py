@@ -29,6 +29,11 @@ from owslib.util import http_post
 import urllib
 from geonode import GeoNodeException
 from geonode.utils import ogc_server_settings
+# added by ict4eo for sos
+from owslib.sos import SensorObservationService
+from owslib.util import nspath_eval
+from owslib.swe.observation.sos100 import namespaces
+
 
 logger = logging.getLogger(__name__)
 
@@ -182,3 +187,104 @@ def wps_execute_layer_attribute_statistics(layer_name, field):
         result['unique_values'] = ','.join(values)
  
     return result
+
+
+## added by ict4eo
+############################# SOS DATA HANDLING ##############################
+
+def sos_swe_data_list(response, constants=[], show_headers=False):
+    """Return data values from <swe:value> in a SOS XML as a list of lists.
+    
+    Parameters
+    ----------
+    constants : list
+        Fixed values appended to each nested list
+    show_headers : boolean
+        if True, inserts list of headers as first nested list
+    """
+    result = []
+    headers = []
+    _tree = etree.fromstring(response)
+    #print "etree type", type(_tree)
+    data = _tree.findall(
+        nspath_eval('om:member/om:Observation/om:result/swe:DataArray', 
+        namespaces))
+    for datum in data:
+        #print "datum", datum
+        encoding = datum.find(
+            nspath_eval('swe:encoding/swe:TextBlock', namespaces))
+        separators = (encoding.attrib['decimalSeparator'], 
+                      encoding.attrib['tokenSeparator'], 
+                      encoding.attrib['blockSeparator']) 
+        #print "separators", separators
+
+        if show_headers and not headers:  # only for first dataset
+            fields = datum.findall(
+                nspath_eval('swe:elementType/swe:DataRecord/swe:field', namespaces))
+            for field in fields:
+                headers.append(field.attrib['name'])
+            #print "headers", headers
+            if headers:
+                result.append(headers)
+
+        values = datum.find(nspath_eval('swe:values', namespaces))
+        #print "values", values.text
+        lines = values.text.split(separators[2]) # list of lines
+        #print "vals", _vals
+        for line in lines:
+            items = line.split(separators[1]) # list of items in one line
+            #print "items:", items
+            if items:
+                if constants:
+                    items += constants
+                result.append(items)
+    return result
+
+
+def sos_observation_xml(url, version='1.0.0', xml=None, offerings=[], 
+                        responseFormat=None, observedProperties=[], 
+                        eventTime=None, feature=None, allProperties=False):
+    """Return the XML from a SOS GetObservation request.
+
+    Parameters
+    ----------
+    url : string
+        Full HTTP address of SOS
+    offerings : list
+        selected offerings from SOS; defaults to first one
+    responseFormat : string
+        desire format for result data 
+    observedProperties : list
+        filters results for selected properties from SOS; defaults to first one
+        (unless allProperties is True)
+    eventTime : string
+        filters results for a specified time
+    feature : string
+        filters results for the ID of a feature_of_interest
+    allProperties : boolean
+        if allProperties is True, filters results for all properties (and ignores
+        any items in the observedProperties)
+    """
+    _sos = SensorObservationService(url, version=version or '1.0.0', xml=xml or None) 
+    # single (or many?) offerings
+    offering = offerings  or _sos.offerings[0] 
+    _offerings = [offering.id]
+    # format
+    responseFormat = responseFormat or offering.response_formats[0]
+    # properties
+    if not allProperties:
+        observedProperties = observedProperties or [offering.observed_properties[0]]
+    else:
+        observedProperties = offering.observed_properties
+    # time
+    eventTime = eventTime
+
+    if feature:
+        return _sos.get_observation(
+            offerings=_offerings, responseFormat=responseFormat, 
+            observedProperties=observedProperties, eventTime=eventTime,
+            FEATUREOFINTEREST=feature)
+    else:
+        return _sos.get_observation(
+            offerings=_offerings, responseFormat=responseFormat, 
+            observedProperties=observedProperties, eventTime=eventTime)
