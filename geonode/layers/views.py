@@ -28,7 +28,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.urlresolvers import reverse
 from django.core.exceptions import PermissionDenied
 from django.http import HttpResponse, HttpResponseRedirect
-from django.shortcuts import render_to_response
+from django.shortcuts import render_to_response, render # render added by ict4eo for ncWMS
 from django.conf import settings
 from django.template import RequestContext
 from django.utils.translation import ugettext as _
@@ -61,6 +61,9 @@ from geoserver.resource import FeatureType
 
 # added by ict4eo for sos
 from ows import sos_swe_data_list, sos_observation_xml
+
+# imports by ict4eo fro ncWMS
+from owslib.wms import WebMapService
 
 
 logger = logging.getLogger("geonode.layers.views")
@@ -724,3 +727,46 @@ def sos_layer_csv(request, layername):
         writer = csv.writer(response)
         writer.writerows(lists)
         return response
+        
+## added ict4eo for ncWMS
+################ NETCDF DATA  via ncWMS: WMST ######################################
+def layer_wmst(request, template='layers/layer_wmst.html'):
+    return render(request, template)
+    
+def layer_wmst_search(request, template='layers/layer_wmst.html'):
+    # we will do stuff here thatt will configure the response to the template
+    if 'wms_url' in request.GET and request.GET['wms_url'] and 'wms_version' in request.GET and request.GET['wms_version']: 
+	url = request.GET['wms_url']
+	version = request.GET['wms_version']
+	wms = WebMapService(url, version)
+	request.session['wms']= wms
+	request.session['url']= url
+	layers = list(wms.contents)
+	wms_name = wms.identification.title
+	q_dict = {'layer_list': layers, 'name': wms_name}
+	return render(request, template, q_dict)
+    else:
+    	return render(request, template, {'error':True})
+    	  	
+# Layer Details and Time Series Playback
+def ncWms_detail(request, layerpart1, layerpart2, template='layers/ncWMS_layer_details.html'):
+    #return render(request, template)
+    #print "layer_part1"
+    layer = layerpart1+ '/' + layerpart2
+    wms1 = request.session['wms']
+    w_url = request.session['url']
+    wms_times = wms1[layer].timepositions
+    times = [time.strip() for time in wms_times]
+    wms_name = wms1.identification.title
+    
+    map_obj = GXPMap(projection="EPSG:900913")
+    DEFAULT_BASE_LAYERS = default_map_config()[1]
+
+    return render_to_response(template, RequestContext(request, {
+    "w_name": wms_name,
+    "w_url": w_url,
+	"layer": layer,
+	"w_times": json.dumps(times),
+        "viewer": json.dumps(map_obj.viewer_json(* (DEFAULT_BASE_LAYERS + []))),
+    }))
+
