@@ -1,0 +1,160 @@
+{% include "geonode/ext_header.html" %}
+{% include "geonode/app_header.html" %}
+{% include "geonode/geo_header.html" %}
+
+
+<script type="text/javascript">
+var app;
+var nclayer; //to hold layer name from views
+var wms_url; //to hold url
+var wms_title; //to hold wms title from views
+var wms_url; // hold url to add map wms layer definition
+Ext.onReady(function(){
+	wms_url = "{{w_url}}";
+	wms_title = "{{w_name}}";
+	alert(wms_url);
+    nclayer = "{{layer}}";
+    values = {{w_times|safe}}; // array holding all time values available in a layer
+    //Extracting start time on a layer
+    s_time = values[0]; 
+    st_val = s_time.substring(0, s_time.indexOf("/"));  
+    try
+      {
+		var startTime = OpenLayers.Date.parse(st_val).toISOString(); 
+      }
+    catch(RangeError)
+      {
+		var startTime = OpenLayers.Date.parse(s_time).toISOString();
+      }
+    app = new gxp.Viewer({
+    	proxy: "/proxy/?url=",
+	portalConfig: {
+            renderTo: "preview_map",
+            layout: "border",
+            height: 600,
+	    items: ["mymap"],
+
+            bbar: {id: "mybbar"}
+        },
+
+	// configuration of all tool plugins for this application
+	tools: [{
+           ptype: "gxp_zoom", //zoom in and out
+	   actionTarget: "map.tbar"
+        },{
+	   ptype: "gxp_zoomtoextent", //zoom to maximum extent
+	   actionTarget: "map.tbar"
+	},{
+	   ptype: "gxp_navigationhistory", //zoom to previous etc
+	   actionTarget: "map.tbar"
+	},{
+	   ptype: "gxp_navigation", //pan map		
+	   actionTarget: "map.tbar"
+	},{
+	   ptype: "gxp_measure", //measuremnts on map		
+	   actionTarget: "map.tbar"
+	},{
+	   ptype: "gxp_wmsgetfeatureinfo", //feature info
+	   outputConfig: {
+		width:400,
+		height: 200
+	   },		
+	   actionTarget: "map.tbar",
+	   toggleGroup: "layertools"
+	}, {
+	   ptype: "gxp_layertree", //layer switcher
+	   outputConfig: {
+		id: "tree",
+		border: true,
+		tbar: []
+	   },	
+	   //outputTarget: "west"
+	}, {
+            ptype: "gxp_addlayers",
+            actionTarget: "map.tbar"
+        }, {
+            ptype: "gxp_removelayer",
+            actionTarget: ["map.tbar", "map.contextMenu"]
+        }, {
+            ptype: "gxp_layerproperties",
+            actionTarget: ["map.tbar", "map.contextMenu"]
+        }/*, { // Time playback tools
+            ptype: "gxp_playback",
+			id: "playbar",
+            outputTarget: "map.tbar",
+			outputConfig: {
+			dynamicRange: false
+			}
+
+        }*/],
+
+	//layer sources
+	defaultSourceType: "gxp_wmssource",
+	sources: {
+	   ol: {
+		ptype:"gxp_olsource"
+	   },
+	   local: {
+		ptype: "gxp_wmscsource",
+                url: "http://localhost:8080/geoserver/wms",
+                version: "1.1.1"
+            }
+	},
+
+	//map and layers
+	map: {
+	    id: "mymap",
+	    title: "Map",
+	    center: [0,0],
+	    zoom: 3,
+	    layers: [{
+		source: "ol",
+    		type: "OpenLayers.Layer.WMS",
+		args: [wms_title,
+    		  wms_url,
+    		  {
+		  layers: [nclayer],
+    		  transparent: 'true',
+		  time: startTime
+		  },{
+		  dimensions: {
+			'time': {
+			    values: values
+			}
+		  },
+		  singleTile: true,
+		  ratio:1,
+		  transitionEffect: 'resize',
+                  visibility: true
+    		  }]
+	    },{
+		source: "ol",
+    		type: "OpenLayers.Layer.WMS",
+		args: ["Global Imagery",
+    		  "http://maps.opengeo.org/geowebcache/service/wms",
+    		  {
+    		  layers:["bluemarble"],
+    		  }],
+		visibility: true,
+		group: "background"
+	    },{
+		source: "local",
+    		name: "geonode:mywaterbodies",
+		title: "mywaterbodies",
+		visibility: true,
+		selected: true,
+		//group: "background"
+	    }],
+	    items: [{
+		xtype: "gx_zoomslider",
+		vertical: true,
+		height: 100
+	    }]
+	}
+    
+    });
+});
+
+
+
+</script>
