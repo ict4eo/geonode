@@ -1,0 +1,50 @@
+{%extends "layers/layer_base.html" %}
+{% load geonode_auth %}
+{% load i18n %}
+{% load dialogos_tags %}
+{% load agon_ratings_tags %}
+{% load bootstrap_tags %}
+{% load url from future %}
+
+{% block title %}{% trans "Layers" %} — {{ block.super }}{% endblock %}
+
+{% block head %}
+{% include "layers/wmst_layer_map.html" %}
+{{ block.super }}
+{% endblock%}
+
+{% block body_class %}data{% endblock %}
+
+{% block body_outer %}
+  <div class="span6">
+    <h2 class="page-title">{{layer}}</h2>
+  </div>
+  <div class="span6 action-group">
+    <div class="pull-right">
+      <div class="btn-group">
+        <a class="btn btn-large btn-primary dropdown-toggle" data-toggle="dropdown" href="#">
+          {% trans "Download Layer" %}
+          <span class="caret"></span>
+        </a>
+        <ul class="dropdown-menu">
+          
+        </ul>
+      </div>
+      <div class="btn-group">
+        <a class="btn btn-large btn-primary dropdown-toggle" data-toggle="dropdown" href="#">
+          {% trans "Download Metadata" %}
+          <span class="caret"></span>
+        </a>
+        <ul class="dropdown-menu">
+          
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="span12">
+    <div id="embedded_map" class="mrg-btm">
+      <div id="preview_map"></div>
+    </div>
+  </div>
+  
+{% endblock %}
