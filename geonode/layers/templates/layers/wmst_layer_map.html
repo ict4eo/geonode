@@ -12,7 +12,7 @@ var wms_url; // hold url to add map wms layer definition
 Ext.onReady(function(){
 	wms_url = "{{w_url}}";
 	wms_title = "{{w_name}}";
-	alert(wms_url);
+	//alert(wms_url);
     nclayer = "{{layer}}";
     values = {{w_times|safe}}; // array holding all time values available in a layer
     //Extracting start time on a layer
@@ -39,54 +39,53 @@ Ext.onReady(function(){
 
 	// configuration of all tool plugins for this application
 	tools: [{
-           ptype: "gxp_zoom", //zoom in and out
-	   actionTarget: "map.tbar"
-        },{
-	   ptype: "gxp_zoomtoextent", //zoom to maximum extent
-	   actionTarget: "map.tbar"
-	},{
-	   ptype: "gxp_navigationhistory", //zoom to previous etc
-	   actionTarget: "map.tbar"
-	},{
-	   ptype: "gxp_navigation", //pan map		
-	   actionTarget: "map.tbar"
-	},{
-	   ptype: "gxp_measure", //measuremnts on map		
-	   actionTarget: "map.tbar"
-	},{
-	   ptype: "gxp_wmsgetfeatureinfo", //feature info
-	   outputConfig: {
-		width:400,
-		height: 200
-	   },		
-	   actionTarget: "map.tbar",
-	   toggleGroup: "layertools"
-	}, {
-	   ptype: "gxp_layertree", //layer switcher
-	   outputConfig: {
-		id: "tree",
-		border: true,
-		tbar: []
-	   },	
-	   //outputTarget: "west"
-	}, {
-            ptype: "gxp_addlayers",
-            actionTarget: "map.tbar"
+		ptype: "gxp_zoom", //zoom in and out
+		actionTarget: "map.tbar"
+		},{
+		ptype: "gxp_zoomtoextent", //zoom to maximum extent
+		actionTarget: "map.tbar"
+		},{
+		ptype: "gxp_navigationhistory", //zoom to previous etc
+		actionTarget: "map.tbar"
+		},{
+		ptype: "gxp_navigation", //pan map		
+		actionTarget: "map.tbar"
+		},{
+		ptype: "gxp_measure", //measuremnts on map		
+		actionTarget: "map.tbar"
+		},{
+		ptype: "gxp_wmsgetfeatureinfo", //feature info
+		outputConfig: {
+			width:400,
+			height: 200
+			},		
+		actionTarget: "map.tbar",
+		toggleGroup: "layertools"
+		}, {
+		ptype: "gxp_layertree", //layer switcher
+		outputConfig: {
+			id: "tree",
+			border: true,
+			tbar: []
+			},	
+		}, {
+		ptype: "gxp_addlayers",
+		actionTarget: "map.tbar"
         }, {
-            ptype: "gxp_removelayer",
-            actionTarget: ["map.tbar", "map.contextMenu"]
+		ptype: "gxp_removelayer",
+		actionTarget: ["map.tbar", "map.contextMenu"]
         }, {
-            ptype: "gxp_layerproperties",
-            actionTarget: ["map.tbar", "map.contextMenu"]
-        }/*, { // Time playback tools
-            ptype: "gxp_playback",
-			id: "playbar",
-            outputTarget: "map.tbar",
-			outputConfig: {
+		ptype: "gxp_layerproperties",
+		actionTarget: ["map.tbar", "map.contextMenu"]
+        }, { 
+		ptype: "gxp_playback", // Time playback tools
+		id: "playbar",
+		outputTarget: "map.tbar",
+		outputConfig: {
 			dynamicRange: false
 			}
 
-        }*/],
+        }],
 
 	//layer sources
 	defaultSourceType: "gxp_wmssource",
