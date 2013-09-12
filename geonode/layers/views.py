@@ -711,22 +711,37 @@ def feature_edit_check(request, layername):
 ################################## SOS DATA ##################################
 
 def sos_layer_csv(request, layername):
+    """Return SOS data in CSV format for a layer that specifies a valid SOS URL.
+    """
+
+    ### NB NB NB  - This is pure test code for now - any layer data is NOT used.
+    ### Sample link to use: http://localhost:8000/layers/layername/sos/csv
+    
     import csv
     #layer = _resolve_layer(request, layername, 'layers.view_layer', _PERMISSION_MSG_VIEW)
     #need to get SOS url from layer attributes ???
-    test = 'http://ict4eo.meraka.csir.co.za/AMD_SOS/sos'  # should be None
-    #if 'sos_url' in request.GET and request.GET['sos_url'] or test:
-    if test:
-        url = request.GET['sos_url'] or test
-        feature = request.GET['feature']
+    sos_url = 'http://ict4eo.meraka.csir.co.za/AMD_SOS/sos'  # TEST ONLY
+    #if 'sos_url' in request.GET and request.GET['sos_url']:
+    if sos_url:
+        try:
+            url = request.GET['sos_url']
+        except MultiValueDictKeyError:
+            #TODO should return with message to user 
+            url = sos_url
+        if 'feature' in request.GET:
+            feature = request.GET['feature']
+        else:
+            feature = None
         XML = sos_observation_xml(url, allProperties=True, feature=feature)
         lists = sos_swe_data_list(XML)
-        print "One FOI, all props: %s items" % len(lists)
+        print "TESTING: One FOI, all props: %s items" % len(lists)
         response = HttpResponse(mimetype='text/csv')
         response['Content-Disposition'] = 'attachment;filename=sos.csv'
         writer = csv.writer(response)
         writer.writerows(lists)
         return response
+    else:
+        return None
         
 ## added ict4eo for ncWMS
 ################ NETCDF DATA  via ncWMS: WMST ######################################
