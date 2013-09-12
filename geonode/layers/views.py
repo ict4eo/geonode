@@ -62,7 +62,7 @@ from geoserver.resource import FeatureType
 # added by ict4eo for sos
 from ows import sos_swe_data_list, sos_observation_xml
 
-# imports by ict4eo fro ncWMS
+# imports by ict4eo for ncWMS
 from owslib.wms import WebMapService
 
 
@@ -736,15 +736,18 @@ def layer_wmst(request, template='layers/layer_wmst.html'):
 def layer_wmst_search(request, template='layers/layer_wmst.html'):
     # we will do stuff here thatt will configure the response to the template
     if 'wms_url' in request.GET and request.GET['wms_url'] and 'wms_version' in request.GET and request.GET['wms_version']: 
-	url = request.GET['wms_url']
-	version = request.GET['wms_version']
-	wms = WebMapService(url, version)
-	request.session['wms']= wms
-	request.session['url']= url
-	layers = list(wms.contents)
-	wms_name = wms.identification.title
-	q_dict = {'layer_list': layers, 'name': wms_name}
-	return render(request, template, q_dict)
+		url = request.GET['wms_url']
+		version = request.GET['wms_version']
+		wms = WebMapService(url, version)
+		request.session['wms']= wms
+		request.session['url']= url
+		layers = list(wms.contents)
+		wms_name = wms.identification.title
+		#q_dict = {'layer_list': layers, 'name': wms_name}
+		return render_to_response(template, RequestContext(request, {
+		'layer_list': layers, 
+		'name': wms_name
+		}))
     else:
     	return render(request, template, {'error':True})
     	  	
@@ -769,4 +772,14 @@ def ncWms_detail(request, layerpart1, layerpart2, template='layers/ncWMS_layer_d
 	"w_times": json.dumps(times),
         "viewer": json.dumps(map_obj.viewer_json(* (DEFAULT_BASE_LAYERS + []))),
     }))
+    
+    
+# Netcdf data download (OpenDap)
+def netcdf_download(request, layerpart1, layerpart2, template='layers/ncWMS_layer_details.html'):
+#	wms = request.session['wms']
+#	download_links = (all_data, subset)
+	return render_to_response(template, RequestContext(request, {
+	}))
+	
+	
 
