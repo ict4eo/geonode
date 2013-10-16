@@ -23,11 +23,13 @@
     <div class="pull-right">
       <div class="btn-group">
         <a class="btn btn-large btn-primary dropdown-toggle" data-toggle="dropdown" href="#">
-          {% trans "Download Layer" %}
+          {% trans "Download Data" %}
           <span class="caret"></span>
         </a>
         <ul class="dropdown-menu">
-          
+           {% for link in links %}
+            <li><a href="{{link.1}}">{{link.0}} <i class="icon-chevron-right"></i></a></li>
+          {% endfor %}
         </ul>
       </div>
       <div class="btn-group">
