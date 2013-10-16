@@ -55,5 +55,9 @@ urlpatterns = patterns(
     url(r'^nclayers/$', 'layer_wmst', name='layer_wmst'),
     url(r'^nclayers/search/?$', 'layer_wmst_search', name='layer_wmst_search'),
     url(r'^nclayers/(?P<layerpart1>[^/]+)/(?P<layerpart2>[^/]*)/$', 'ncWms_detail', name="ncWms_detail"),
+    #url(r'^nclayers/(?P<layerpart1>[^/]+)/(?P<layerpart2>[^/]*)/$', 'netcdf_download', name="netcdf_download"),
+    # a new regex for layer of type sde:something clone the view to accept this layer, have to go this route because 
+    #geoserver wms-t does not support cascaded wms-t
+    url(r'^nclayers/(?P<layername>[^/]*)/$', 'Wmst_detail', name="Wmst_detail")
     
 )
