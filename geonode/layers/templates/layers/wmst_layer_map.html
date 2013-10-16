@@ -78,14 +78,21 @@ Ext.onReady(function(){
 		ptype: "gxp_layerproperties",
 		actionTarget: ["map.tbar", "map.contextMenu"]
         }, { 
-		ptype: "gxp_playback", // Time playback tools
-		id: "playbar",
-		outputTarget: "map.tbar",
-		outputConfig: {
-			dynamicRange: false
-			}
+			ptype: "gxp_playback", // Time playback tools
+			id: "playbar",
+			outputTarget: "map.tbar",
+			outputConfig: {
+				dynamicRange: false
+				}
 
-        }],
+        },{
+			//pop up tool
+			//align tool to the right later
+			actionTarget: "map.tbar",
+			actions: [{text: "Download data", 
+				handler: function(){Download_options()}
+				}]
+		}],
 
 	//layer sources
 	defaultSourceType: "gxp_wmssource",
@@ -155,5 +162,71 @@ Ext.onReady(function(){
 });
 
 
-
+function Download_options(){
+	var popWin = new Ext.Window({
+		title: "Download Config",
+		width: 350,
+		height: 435,
+		//renderTo: "myMap", error here check later
+		layout: 'form',
+		maximizable: false,
+		collapsible: true,
+		items: [{ 
+				xtype: 'fieldset',
+				title: 'Data location', //might actually take this one,
+				autoHeight: true,
+				defaultType: 'textfield',
+				layout: 'form',
+				items: [{fieldLabel: "Data URL",
+					name: 'url',
+					labelAlign: 'right'
+				}]
+			},{
+				xtype: 'fieldset',
+				title: 'Spatial Data Bounds in Degrees', 
+				autoHeight: true,
+				//defaultType: 'textfield',
+				layout: 'column',
+				items: [{
+					columnWidth: .5,
+					layout: 'form',
+					items: [{
+						xtype: 'textfield',
+						fieldLabel: "Min lon",
+						name: 'minLon',
+						labelAlign: 'right',
+						anchor: '90%',
+					},{
+						xtype: 'textfield',
+						fieldLabel: "Max lon",
+						name: 'maxLon',
+						labelAlign: 'right',
+						anchor: '90%'
+					}]
+				},{
+					columnWidth: .5,
+					layout: 'form',
+					items: [{
+						xtype: 'textfield',
+						fieldLabel: "Min lat",
+						name: 'minLat',
+						labelAlign: 'right',
+						anchor: '95%',
+					},{
+						xtype: 'textfield',
+						fieldLabel: "Max lat",
+						name: 'maxLat',
+						labelAlign: 'right',
+						anchor: '95%'
+					}]
+				}]		
+		}],
+		buttons: [{
+			text: 'Download'
+		},{
+			text: 'Close'
+		}]			
+	});
+	popWin.show();
+}
 </script>
