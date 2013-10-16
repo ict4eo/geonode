@@ -64,6 +64,7 @@ from ows import sos_swe_data_list, sos_observation_xml
 
 # imports by ict4eo for ncWMS
 from owslib.wms import WebMapService
+from geonode.layers.openDap import _opendap_links, opendap_links 
 
 
 logger = logging.getLogger("geonode.layers.views")
@@ -743,7 +744,7 @@ def sos_layer_csv(request, layername):
     else:
         return None
         
-## added ict4eo for ncWMS
+## added by ict4eo for ncWMS
 ################ NETCDF DATA  via ncWMS: WMST ######################################
 def layer_wmst(request, template='layers/layer_wmst.html'):
     return render(request, template)
@@ -777,6 +778,9 @@ def ncWms_detail(request, layerpart1, layerpart2, template='layers/ncWMS_layer_d
     times = [time.strip() for time in wms_times]
     wms_name = wms1.identification.title
     
+    #for downloading layer
+    download_links = ['full dataset', 'spatial subset', 'temporal subset', 'spatio-temporal subset' ]
+    links = opendap_links()
     map_obj = GXPMap(projection="EPSG:900913")
     DEFAULT_BASE_LAYERS = default_map_config()[1]
 
@@ -785,16 +789,39 @@ def ncWms_detail(request, layerpart1, layerpart2, template='layers/ncWMS_layer_d
     "w_url": w_url,
 	"layer": layer,
 	"w_times": json.dumps(times),
-        "viewer": json.dumps(map_obj.viewer_json(* (DEFAULT_BASE_LAYERS + []))),
+	"links_" : download_links,
+	"links" : links,
+    "viewer": json.dumps(map_obj.viewer_json(* (DEFAULT_BASE_LAYERS + []))),
     }))
+
+############## short term solution for supporting geoserver wmst###########
+def Wmst_detail(request, layername, template='layers/ncWMS_layer_details.html'):
+    #return render(request, template)
+    #print "layer_part1"
+    layer = layername
+    wms1 = request.session['wms']
+    w_url = request.session['url']
+    wms_times = wms1[layer].timepositions
+    times = [time.strip() for time in wms_times]
+    wms_name = wms1.identification.title
     
+    #for downloading layer
+    #download_links = ['full dataset', 'spatial subset', 'temporal subset', 'spatio-temporal subset' ]
+    links = opendap_links()
+    map_obj = GXPMap(projection="EPSG:900913")
+    DEFAULT_BASE_LAYERS = default_map_config()[1]
+
+    return render_to_response(template, RequestContext(request, {
+    "w_name": wms_name,
+    "w_url": w_url,
+	"layer": layer,
+	"w_times": json.dumps(times),
+	"links_" : download_links,
+	"links" : links,
+    "viewer": json.dumps(map_obj.viewer_json(* (DEFAULT_BASE_LAYERS + []))),
+    }))
+
     
-# Netcdf data download (OpenDap)
-def netcdf_download(request, layerpart1, layerpart2, template='layers/ncWMS_layer_details.html'):
-#	wms = request.session['wms']
-#	download_links = (all_data, subset)
-	return render_to_response(template, RequestContext(request, {
-	}))
 	
 	
 
