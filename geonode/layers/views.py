@@ -182,28 +182,34 @@ def layer_upload(request, template='upload/layer_upload.html'):
 
 def layer_detail(request, layername, template='layers/layer_detail.html'):
     layer = _resolve_layer(request, layername, 'layers.view_layer', _PERMISSION_MSG_VIEW)
+    
+    ### new code for sos option - ICT4EO
+    keys = [lkw.name for lkw in layer.keywords.all()]
+    if 'sos' in keys:
+		return sos_download(request, layername, template='layers/layer_detail_SOS.html')
+    else:
+		### old code begins here
+        maplayer = GXPLayer(name = layer.typename, ows_url = ogc_server_settings.LOCATION + "wms", layer_params=json.dumps( layer.attribute_config()))
 
-    maplayer = GXPLayer(name = layer.typename, ows_url = ogc_server_settings.LOCATION + "wms", layer_params=json.dumps( layer.attribute_config()))
+        layer.srid_url = "http://www.spatialreference.org/ref/" + layer.srid.replace(':','/').lower() + "/"
 
-    layer.srid_url = "http://www.spatialreference.org/ref/" + layer.srid.replace(':','/').lower() + "/"
+        signals.pre_save.disconnect(geoserver_pre_save, sender=Layer)
+        signals.post_save.disconnect(geoserver_post_save, sender=Layer)
+        layer.popular_count += 1
+        layer.save()
+        signals.pre_save.connect(geoserver_pre_save, sender=Layer)
+        signals.post_save.connect(geoserver_post_save, sender=Layer)
 
-    signals.pre_save.disconnect(geoserver_pre_save, sender=Layer)
-    signals.post_save.disconnect(geoserver_post_save, sender=Layer)
-    layer.popular_count += 1
-    layer.save()
-    signals.pre_save.connect(geoserver_pre_save, sender=Layer)
-    signals.post_save.connect(geoserver_post_save, sender=Layer)
+        # center/zoom don't matter; the viewer will center on the layer bounds
+        map_obj = GXPMap(projection="EPSG:900913")
+        DEFAULT_BASE_LAYERS = default_map_config()[1]
 
-    # center/zoom don't matter; the viewer will center on the layer bounds
-    map_obj = GXPMap(projection="EPSG:900913")
-    DEFAULT_BASE_LAYERS = default_map_config()[1]
-
-    return render_to_response(template, RequestContext(request, {
-        "layer": layer,
-        "viewer": json.dumps(map_obj.viewer_json(* (DEFAULT_BASE_LAYERS + [maplayer]))),
-        "permissions_json": _perms_info_json(layer, LAYER_LEV_NAMES),
-        "documents": get_related_documents(layer),
-    }))
+        return render_to_response(template, RequestContext(request, {
+            "layer": layer,
+            "viewer": json.dumps(map_obj.viewer_json(* (DEFAULT_BASE_LAYERS + [maplayer]))),
+            "permissions_json": _perms_info_json(layer, LAYER_LEV_NAMES),
+            "documents": get_related_documents(layer),
+        }))
 
 
 @login_required
@@ -711,6 +717,39 @@ def feature_edit_check(request, layername):
 ## added by ict4eo for sos
 ################################## SOS DATA ##################################
 
+### New sos download view
+def sos_download(request, layername, template='layers/layer_detail_SOS.html'):
+    ### figure out how to get the link url in layer.link_set
+    ### first let's just parse the url as part of the http response below
+    download_url = "http://127.0.0.1:8000/layers/" + layername + "/sos/csv"
+    
+    ### need all the other stuff in layer_details as well
+    layer = _resolve_layer(request, layername, 'layers.view_layer', _PERMISSION_MSG_VIEW)
+    maplayer = GXPLayer(name = layer.typename, ows_url = ogc_server_settings.LOCATION + "wms", layer_params=json.dumps( layer.attribute_config()))
+
+    layer.srid_url = "http://www.spatialreference.org/ref/" + layer.srid.replace(':','/').lower() + "/"
+
+    signals.pre_save.disconnect(geoserver_pre_save, sender=Layer)
+    signals.post_save.disconnect(geoserver_post_save, sender=Layer)
+    layer.popular_count += 1
+    layer.save()
+    signals.pre_save.connect(geoserver_pre_save, sender=Layer)
+    signals.post_save.connect(geoserver_post_save, sender=Layer)
+
+    # center/zoom don't matter; the viewer will center on the layer bounds
+    map_obj = GXPMap(projection="EPSG:900913")
+    DEFAULT_BASE_LAYERS = default_map_config()[1]
+
+    return render_to_response(template, RequestContext(request, {
+        "layer": layer,
+        "viewer": json.dumps(map_obj.viewer_json(* (DEFAULT_BASE_LAYERS + [maplayer]))),
+        "permissions_json": _perms_info_json(layer, LAYER_LEV_NAMES),
+        "documents": get_related_documents(layer),
+        "s_url" : download_url
+    }))
+	
+### End new sos download view
+
 def sos_layer_csv(request, layername):
     """Return SOS data in CSV format for a layer that specifies a valid SOS URL.
     """
@@ -721,7 +760,10 @@ def sos_layer_csv(request, layername):
     import csv
     #layer = _resolve_layer(request, layername, 'layers.view_layer', _PERMISSION_MSG_VIEW)
     #need to get SOS url from layer attributes ???
-    sos_url = 'http://ict4eo.meraka.csir.co.za/AMD_SOS/sos'  # TEST ONLY
+    layer = _resolve_layer(request, layername, 'layers.view_layer', _PERMISSION_MSG_VIEW)
+    sos_url = str(layer.supplemental_information)
+    print "layers/views:190", sos_url
+    #sos_url = 'http://ict4eo.meraka.csir.co.za/AMD_SOS/sos'  # TEST ONLY
     #if 'sos_url' in request.GET and request.GET['sos_url']:
     if sos_url:
         try:
