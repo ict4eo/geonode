@@ -24,10 +24,24 @@
   </div>
   <div class="span7 action-group">
     <div class="btn-group pull-right">
+
+      <!-- download atribute data -->
+      {% if 'SOS' in keys %}
+      <div class="btn-group">
+        <a class="btn btn-large btn-primary dropdown-toggle" data-toggle="dropdown" href="#" title="Download the attribute data">
+          {% trans "Data" %}
+          <span class="caret"></span>
+        </a>
+        <ul class="dropdown-menu">
+            <li><a href="#">{% trans "Get CSV data" %}<i class="icon-chevron-right"></i></a></li>
+        </ul>
+      </div>
+      {% endif %}
+
       <!-- download layer -->
       <div class="btn-group">
-        <a class="btn btn-large btn-primary dropdown-toggle" data-toggle="dropdown" href="#">
-          {% trans "Download Layer" %}
+        <a class="btn btn-large btn-primary dropdown-toggle" data-toggle="dropdown" href="#" title="Download the layer">
+          {% trans "Layer" %}
           <span class="caret"></span>
         </a>
         <ul class="dropdown-menu">
@@ -38,8 +52,8 @@
       </div>
       <!-- download metadata -->
       <div class="btn-group">
-        <a class="btn btn-large btn-primary dropdown-toggle" data-toggle="dropdown" href="#">
-          {% trans "Download Metadata" %}
+        <a class="btn btn-large btn-primary dropdown-toggle" data-toggle="dropdown" href="#" title="Download the metadata">
+          {% trans "Metadata" %}
           <span class="caret"></span>
         </a>
         <ul class="dropdown-menu">
@@ -52,8 +66,8 @@
       {% if can_edit_layer %}
       <!-- edit layer dropdown -->
       <div class="btn-group">
-        <a class="btn btn-large btn-info dropdown-toggle" data-toggle="dropdown" href="#">
-          {% trans "Edit Layer" %}
+        <a class="btn btn-large btn-info dropdown-toggle" data-toggle="dropdown" href="#" title="Edit the layer">
+          {% trans "Edit" %}
           <span class="caret"></span>
         </a>
         <ul class="dropdown-menu">
