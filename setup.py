@@ -102,6 +102,7 @@ setup(name='GeoNode',
         "South==0.7.3",
         "django-downloadview==1.2",
         #catalogue
+        "pyproj==1.9.3",
         "pycsw>=1.6.0",
         # setup
         "Paver",
