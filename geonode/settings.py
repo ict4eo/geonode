@@ -147,7 +147,8 @@ LOGOUT_URL = '/account/logout/'
 # Activate the Documents application
 DOCUMENTS_APP = True
 ALLOWED_DOCUMENT_TYPES = [
-    'doc', 'docx', 'xls', 'xslx', 'pdf', 'zip', 'jpg', 'jpeg', 'tif', 'tiff', 'png', 'gif', 'txt'
+    'doc', 'docx','gif', 'jpg', 'jpeg', 'ods', 'odt', 'pdf', 'png', 'ppt', 
+    'rar', 'tif', 'tiff', 'txt', 'xls', 'xlsx', 'xml', 'zip', 
 ]
 MAX_DOCUMENT_SIZE = 2 # MB
 
@@ -200,6 +201,7 @@ INSTALLED_APPS = (
     'geonode.proxy',
     'geonode.security',
     'geonode.search',
+    'geonode.social',
     'geonode.catalogue',
     'geonode.documents',
 )
@@ -345,9 +347,9 @@ AGON_RATINGS_CATEGORY_CHOICES = {
 
 # Activity Stream
 ACTSTREAM_SETTINGS = {
-    'MODELS': ('auth.user', 'layers.layer', 'maps.map'),
+    'MODELS': ('auth.user', 'layers.layer', 'maps.map', 'dialogos.comment', 'documents.document'),
     'FETCH_RELATIONS': True,
-    'USE_PREFETCH': True,
+    'USE_PREFETCH': False,
     'USE_JSONFIELD': True,
     'GFK_FETCH_DEPTH': 1,
 }
@@ -388,6 +390,10 @@ SITEURL = "http://localhost:8000/"
 # Default TopicCategory to be used for resources. Use the slug field here
 DEFAULT_TOPICCATEGORY = 'location'
 
+# Topic Categories list should not be modified (they are ISO). In case you 
+# absolutely need it set to True this variable
+MODIFY_TOPICCATEGORY = False
+
 MISSING_THUMBNAIL = 'geonode/img/missing_thumb.png'
 
 # Search Snippet Cache Time in Seconds
@@ -398,6 +404,10 @@ OGC_SERVER = {
     'default' : {
         'BACKEND' : 'geonode.geoserver',
         'LOCATION' : 'http://localhost:8080/geoserver/',
+        # PUBLIC_LOCATION needs to be kept like this because in dev mode
+        # the proxy won't work and the integration tests will fail
+        # the entire block has to be overridden in the local_settings
+        'PUBLIC_LOCATION' : 'http://localhost:8080/geoserver/',
         'USER' : 'admin',
         'PASSWORD' : 'geoserver',
         'MAPFISH_PRINT_ENABLED' : True,
@@ -405,8 +415,11 @@ OGC_SERVER = {
         'GEONODE_SECURITY_ENABLED' : True,
         'GEOGIT_ENABLED' : False,
         'WMST_ENABLED' : False,
+        'BACKEND_WRITE_ENABLED': True,
+        'WPS_ENABLED' : True,
         # Set to name of database in DATABASES dictionary to enable
         'DATASTORE': '', #'datastore',
+        'TIMEOUT': 10  # number of seconds to allow for HTTP requests
     }
 }
 
@@ -498,7 +511,7 @@ DEFAULT_MAP_ZOOM = 0
 MAP_BASELAYERS = [{
     "source": {
         "ptype": "gxp_wmscsource",
-        "url": OGC_SERVER['default']['LOCATION'] + "wms",
+        "url": OGC_SERVER['default']['PUBLIC_LOCATION'] + "wms",
         "restUrl": "/gs/rest"
      }
   },{
@@ -509,9 +522,9 @@ MAP_BASELAYERS = [{
     "fixed": True,
     "group":"background"
   }, {
-    "source": {"ptype": "gxp_olsource"},
+    "source": {"ptype": "gxp_osmsource"},
     "type":"OpenLayers.Layer.OSM",
-    "args":["OpenStreetMap"],
+    "name":"mapnik",
     "visibility": False,
     "fixed": True,
     "group":"background"
@@ -557,6 +570,7 @@ LEAFLET_CONFIG = {
     'TILES_URL': 'http://{s}.tile2.opencyclemap.org/transport/{z}/{x}/{y}.png'
 }
 
+SOCIAL_BUTTONS = True
 
 # Require users to authenticate before using Geonode
 LOCKDOWN_GEONODE = False
@@ -567,8 +581,18 @@ AUTH_EXEMPT_URLS = ()
 if LOCKDOWN_GEONODE:
     MIDDLEWARE_CLASSES = MIDDLEWARE_CLASSES + ('geonode.security.middleware.LoginRequiredMiddleware',)
 
+
+# A tuple of hosts the proxy can send requests to.
+PROXY_ALLOWED_HOSTS = ()
+
+# The proxy to use when making cross origin requests.
+PROXY_URL = '/proxy/?url='
+
+
 # Load more settings from a file called local_settings.py if it exists
 try:
     from local_settings import *
 except ImportError:
     pass
+
+

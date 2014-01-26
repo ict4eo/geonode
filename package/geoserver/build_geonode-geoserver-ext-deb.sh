@@ -15,6 +15,7 @@ git clone $GEOSERVER_EXT_GIT tmp
 
 cp -r debian tmp
 pushd tmp
+git checkout $GIT_BRANCH
 
 # Replace GeoNode port for production.
 sed -i 's/localhost:8000/127.0.0.1/g' \
@@ -27,16 +28,19 @@ GIT_REV=$(git log -1 --pretty=format:%h)
 
 DEB_VERSION=2.0+$(date +"%Y%m%d%H%M")
 
-mvn clean install
+mvn clean install war:war -DskipTests
 
 # Build for launchpad
-git-dch --spawn-editor=snapshot --new-version=$DEB_VERSION --git-author --id-length=6 --ignore-branch  --auto --release
-debuild -S
-dput ppa:geonode/snapshots ../geoserver-geonode_${DEB_VERSION}_source.changes
-rm ../geoserver-geonode*
+#git-dch --spawn-editor=snapshot --new-version=$DEB_VERSION --git-author --id-length=6 --ignore-branch  --auto --release
+#sed -i 's/urgency=low/urgency=high/g' \
+#    debian/changelog
+
+#debuild -S
+#dput ppa:geonode/$PPA ../geoserver-geonode_${DEB_VERSION}_source.changes
+#rm ../geoserver-geonode*
 
 # Re-build local debs
-debuild
+#debuild
 
 # Copy .debs, .jar, and .war into place on the server
 if [ -d $DL_ROOT/$GIT_REV ]; then
@@ -44,7 +48,7 @@ if [ -d $DL_ROOT/$GIT_REV ]; then
 fi
 
 mkdir $DL_ROOT/$GIT_REV
-cp ../*.deb $DL_ROOT/$GIT_REV/.
+#cp ../*.deb $DL_ROOT/$GIT_REV/.
 cp target/geoserver.war $DL_ROOT/$GIT_REV/.
 cp target/geonode-geoserver-ext-*-geoserver-plugin.zip $DL_ROOT/$GIT_REV/.
 cp target/*data.zip $DL_ROOT/$GIT_REV/data.zip
@@ -55,7 +59,7 @@ cp target/*data.zip $DL_ROOT/$GIT_REV/data.zip
 # Cleanup
 rm -rf $DL_ROOT/latest
 ln -sf $DL_ROOT/$GIT_REV $DL_ROOT/latest
-rm ../geoserver-geonode*
+#rm ../geoserver-geonode*
 
 popd
 rm -rf tmp

@@ -44,7 +44,7 @@ class Role(models.Model):
 
 class Profile(models.Model):
     user = models.OneToOneField(User, related_name="profile", null=True, blank=True)
-    name = models.CharField(_('Individual Name'), max_length=255, blank=True, null=True, help_text=_('name of the responsible personsurname, given name, title separated by a delimiter'))
+    name = models.CharField(_('Individual Name'), max_length=255, blank=True, null=True, help_text=_('name of the responsible person surname, given name, title separated by a delimiter'))
     organization = models.CharField(_('Organization Name'), max_length=255, blank=True, null=True, help_text=_('name of the responsible organization'))
     profile = models.TextField(_('Profile'), null=True, blank=True)
     position = models.CharField(_('Position Name'), max_length=255, blank=True, null=True, help_text=_('role or position of the responsible person'))
@@ -72,7 +72,10 @@ class Profile(models.Model):
         return u"%s (%s)" % (self.name, self.organization)
 
     def class_name(value): 
-        return value.__class__.__name__ 
+        return value.__class__.__name__
+        
+    class Meta:
+        ordering = ['name']
 
 @receiver(post_save, sender=User)
 def user_post_save(sender, **kwargs):

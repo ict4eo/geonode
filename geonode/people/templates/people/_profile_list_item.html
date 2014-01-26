@@ -5,30 +5,32 @@
 {% load i18n %}
 
 <article>
-  <div class="avatar"><a href="{% url "profile_detail" profile.o.user.username %}">{% avatar profile.o.user 80 %}</a></div>
-  <div class="pull-left">
-    <h3><i class="icon-user"></i> <a href="{% url "profile_detail" profile.o.user.username %}">{{ profile.title }}</a>
-    {% if user.is_authenticated %}
-      {% if  profile.o.user.email %}<a href="mailto:{{ profile.o.user.email }}"><i class="icon-envelope-alt icon-large"></i></a>{% endif %}
-    {% endif %}
-    </h3>
+  <div class="content">
+    <div class="item-header">
+      <div class="avatar"><a href="{% url "profile_detail" profile.o.user.username %}" >{% avatar profile.o.user 100 %}</a></div>
+      <h3><i class="icon-user"></i> <a href="{% url "profile_detail" profile.o.user.username %}">{{ profile.title }}</a>
+      {% if user.is_authenticated %}
+        {% if  profile.o.user.email %}<a href="mailto:{{ profile.o.user.email }}"><i class="icon-envelope-alt icon-large"></i></a>{% endif %}
+      {% endif %}
+      </h3>
+    </div>
     <div class="details">
       <div class="meta">
         <p>
           {% if profile.o.organization %}{{ profile.o.organization }}
-            {% else %}No Group
+            {% else %}{% trans "No Group" %}
           {% endif %}</p>
         <p class="abstract">
           {% if profile.o.profile %}{{ profile.o.profile }}{% endif %}
         </p>
           <ul class="nav stats">
-            <li><a href="/people/profile/{{ profile.o.user.username }}/?content=layers"><strong>{{ profile.layer_count }}</strong> Layers</a></li>
-            <li><a href="/people/profile/{{ profile.o.user.username }}/?content=maps"><strong>{{ profile.map_count }}</strong> Maps</a></li>
+            <li><a href="/people/profile/{{ profile.o.user.username }}/?content=layers"><strong>{{ profile.layer_count }}</strong> {% trans "Layers" %}</a></li>
+            <li><a href="/people/profile/{{ profile.o.user.username }}/?content=maps"><strong>{{ profile.map_count }}</strong> {% trans "Maps" %}</a></li>
             {% if DOCUMENTS_APP %}
-            <li><a href="/people/profile/{{ profile.o.user.username }}/?content=documents"><strong>{{ profile.document_count }}</strong> Documents</a></li>
+            <li><a href="/people/profile/{{ profile.o.user.username }}/?content=documents"><strong>{{ profile.document_count }}</strong> {% trans "Documents" %}</a></li>
             {% endif %}
           </ul>
-      </div>
+      </div> <!-- ./meta -->
       {% if request.user != profile.o.user %}
         {% if_has_tag if_relationship %}
             {% include "relationships/_profile_follow.html" %}
@@ -38,6 +40,6 @@
       {% if_has_tag actor_url %}
         <p><a href="{% actor_url profile.o.user %}" class="btn btn-mini" type="button">{% trans "My Activities" %}</a></p>
       {% endif_has_tag %}
-    </div>
-  </div>
+    </div> <!-- ./details -->
+  </div> <!-- ./content -->
 </article>
