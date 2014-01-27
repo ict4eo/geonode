@@ -22,9 +22,12 @@ GeoExplorer.Viewer.prototype.loadConfig = function(config) {
             ptype: "gxp_getfeedfeatureinfo",
             checked: true
         }, {
-			ptype: "gxp_playback", // Time playback tool - added by ICT4EO - Bolelang
-			id: "playbar",
-			checked: true,		
+            ptype: "gxp_playback", // Time playback tool - added by ICT4EO - Bolelang
+            id: "playbar",
+            checked: true,
+        }, {
+            ptype: "gxp_timeseriespopup", // Time series tool - added by ICT4EO - Bolelang
+            checked: true,
         });
         config.viewerTools.splice(5, 0, {
             id: "styler",
@@ -37,10 +40,11 @@ GeoExplorer.Viewer.prototype.loadConfig = function(config) {
 </script>
 
 <!-- My additional library's-->
-<!--Please change the location of this directory to point to the correct location on your PC : TEMP SOLUTION
-<script src="/home/bolelang/.venvs/geonode/lib/python2.7/site-packages/django/contrib/gis/templates/gis/admin/openlayers.js" type="text/javascript"></script>-->
-<script src="{{STATIC_URL}}externals/OpenLayers/openlayers.js" type="text/javascript"></script>
+<!--Please change the location of this directory to point to the correct location on your PC : TEMP SOLUTION-->
+<script src="/home/bolelang/.venvs/geonode/lib/python2.7/site-packages/django/contrib/gis/templates/gis/admin/openlayers.js" type="text/javascript"></script>
+<!--<script src="{{STATIC_URL}}externals/OpenLayers/openlayers.js" type="text/javascript"></script>-->
 
+<!--Time Serie Playback requirements -->
 <script src="{{STATIC_URL}}externals/dimensionmgr/lib/OpenLayers/Control/DimensionManager.js" type="text/javascript"></script>
 <script src="{{STATIC_URL}}externals/dimensionmgr/lib/OpenLayers/Dimension/Agent.js" type="text/javascript"></script>
 <script src="{{STATIC_URL}}externals/dimensionmgr/lib/OpenLayers/Dimension/Model.js" type="text/javascript"></script>
@@ -52,3 +56,8 @@ GeoExplorer.Viewer.prototype.loadConfig = function(config) {
 <script src="{{STATIC_URL}}externals/gxp_tools/src/script/widgets/PlaybackOptionsPanel.js" type="text/javascript"></script>
 <script src="{{STATIC_URL}}externals/gxp_tools/src/script/widgets/form/PlaybackModeComboBox.js" type="text/javascript"></script>
 <script src="{{STATIC_URL}}externals/gxp_tools/src/script/widgets/slider/TimeSlider.js" type="text/javascript"></script>
+
+<!-- graphing tools-->
+<script src="{{STATIC_URL}}externals/gxp_tools/src/script/plugins/C_TimeSeries.js" type="text/javascript"></script>
+
+<script src="http://d3js.org/d3.v3.js"></script>
