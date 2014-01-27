@@ -719,16 +719,20 @@ def feature_edit_check(request, layername):
 def sos_layer_csv(request, layername):
     """Return SOS data in CSV format for a layer that specifies a valid SOS URL.
     """
-
+    #print request, layername
     ### NB NB NB  - This is pure test code for now - any layer data is NOT used.
     ### Sample link to use: http://localhost:8000/layers/layername/sos/csv
 
     import csv
     #layer = _resolve_layer(request, layername, 'layers.view_layer', _PERMISSION_MSG_VIEW)
     #need to get SOS url from layer attributes ???
-    layer = _resolve_layer(request, layername, 'layers.view_layer', _PERMISSION_MSG_VIEW)
-    sos_url = str(layer.supplemental_information)
-    print "layers/views:729", sos_url
+    layer = _resolve_layer(request, layername, 'layers.view_layer', _PERMISSION_MSG_VIEW)    
+    sup_inf_str = str(layer.supplemental_information)    
+    print "layers/views:729", sup_inf_str, layername
+    sup_info = eval(sup_inf_str)
+    sos_url = sup_info['sos_url']
+    observedProperties = sup_info['observedProperties']
+    
     #sos_url = 'http://ict4eo.meraka.csir.co.za/AMD_SOS/sos'  # TEST ONLY
     #if 'sos_url' in request.GET and request.GET['sos_url']:
     if sos_url:
@@ -741,13 +745,19 @@ def sos_layer_csv(request, layername):
             feature = request.GET['feature']
         else:
             feature = None
-        XML = sos_observation_xml(url, allProperties=True, feature=feature)
+        #print url, feature
+        #feature="pta_csir_house_01"
+        XML = sos_observation_xml(url, observedProperties=observedProperties, allProperties=False, feature=feature)
         lists = sos_swe_data_list(XML)
         print "TESTING: One FOI, all props: %s items" % len(lists)
         response = HttpResponse(mimetype='text/csv')
         response['Content-Disposition'] = 'attachment;filename=sos.csv'
+        header = ["time", "house", "temp"]
         writer = csv.writer(response)
+        #writer = csv.DictWriter(response, fieldnames=["time", "house", "temp"], delimeter=",") // to include headings - bolelang
+        writer.writerow(header)
         writer.writerows(lists)
+        #writer.writeheader()
         return response
     else:
         return None
