@@ -25,14 +25,14 @@ imgfile = StringIO.StringIO('GIF87a\x01\x00\x01\x00\x80\x01\x00\x00\x00\x00ccc,\
                                 '\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;')
 
 class LayersTest(TestCase):
-    fixtures = ['intial_data.json']
+    fixtures = ['intial_data.json', 'bobby']
     
     def setUp(self):
         create_models('document')
         create_models('map')
 
     def test_create_document_with_no_rel(self):
-        """Tests the createion of a document with no relations"""
+        """Tests the creation of a document with no relations"""
         f = SimpleUploadedFile('test_img_file.gif', imgfile.read(), 'image/gif')
     
         superuser = User.objects.get(pk=2)
@@ -42,7 +42,7 @@ class LayersTest(TestCase):
         self.assertEquals(Document.objects.get(pk=c.id).title, 'theimg')
 
     def test_create_document_with_rel(self):
-        """Tests the createion of a document with no a map related"""
+        """Tests the creation of a document with no a map related"""
         f = SimpleUploadedFile('test_img_file.gif', imgfile.read(), 'image/gif')
     
         superuser = User.objects.get(pk=2)

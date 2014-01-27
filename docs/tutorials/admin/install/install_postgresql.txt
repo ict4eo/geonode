@@ -1,54 +1,65 @@
+.. _install_postgresql:
+
 Installation of Postgresql-9.2 on Ubuntu 12.04 
 ==============================================
 
 Installation
 ------------
 
-The Installation of Postgresql-9.2 on Ubuntu 12.04 includes two main steps (Generelly, this installation should work for each version of Postgresql!). 
+The Installation of Postgresql-9.2 on Ubuntu 12.04 includes two main steps (Generally, this installation should work for each version of Postgresql!). 
 
+#. **Add repository to list**
 
+   Create an empty file called *pgdg.list* placed in /etc/apt/sources.list.d/, using these commands
 
-*Step 1*
+   .. code-block:: console
 
-Create an empty file called *pgdg.list* placed in /etc/apt/sources.list.d/, using these commands::
+	   $ cd /etc/apt/sources.list.d/
+	   $ sudo touch pgdg.list
 
-	cd /etc/apt/sources.list.d/
-	
-	sudo touch pgdg.list
-  
-Now the following line has to be included the *pgdg.list* file.
+   Now the following line has to be included the *pgdg.list* file.
 
-	deb http://apt.postgresql.org/pub/repos/apt/ codename-pgdg main
-	
-Instead of *codename* write the name of your system. If you do not know this, type
+   .. code-block:: console
 
-	 lsb_release -c
+	   deb http://apt.postgresql.org/pub/repos/apt/ codename-pgdg main
 
-This will return you the name of your system.
+   Instead of *codename* write the name of your system. If you do not know this, type
 
-.. warning::
-    Make sure that you have changed *codename* to the name of your system before you copy the link in the next step!
+   .. code-block:: console
 
-Now open the *pgdg.list* file using e.g.::
+	   $ lsb_release -c
 
-	gksu gedit pdgd.list
-	
-and copy deb `http://apt.postgresql.org/pub/repos/apt/ codename-pgdg main` into it.
+   This will return you the name of your system.
 
+   .. warning:: Make sure that you have changed *codename* to the name of your system before you copy the link in the next step!
 
-*Step 2*
+   Now open the *pgdg.list* file using e.g.:
 
-Now you have to import the repository key from their website. Use the following command to do so:
+   .. code-block:: console
 
-	wget --quiet -O - http://apt.postgresql.org/pub/repos/apt/ACCC4CF8.asc | sudo apt-key add -
+	   $ gksu gedit pdgd.list
 
-After that you have to update the package lists using
+   and copy deb `http://apt.postgresql.org/pub/repos/apt/ codename-pgdg main` into it.
 
-	sudo apt-get update
-	
-and then you can install postgresql-9.2 and pgadmin3 (if needed)
+#. **Import Repository key**
 
-	sudo apt-get install postgresql-9.2 pgadmin3
+   Use the following command to do so:
+
+   .. code-block:: console
+
+	   $ wget --quiet -O - http://apt.postgresql.org/pub/repos/apt/ACCC4CF8.asc | sudo apt-key add -
+
+   After that you have to update the package lists using
+
+   .. code-block:: console
+
+	   $ sudo apt-get update
+
+   and then you can install postgresql-9.2 and pgadmin3 (if needed)
+
+   .. code-block:: console
+
+	   $ sudo apt-get install postgresql-9.2 pgadmin3
 
 
 Configuration
@@ -56,51 +67,56 @@ Configuration
 
 **General**
 
-*Step 1 – Change password*
+#. *Change password*
 
-First of all you have to set a new password for the superuser *postgres*. In order to do so, type the following command line into your terminal:
+   First of all you have to set a new password for the superuser *postgres*. In order to do so, type the following command line into your terminal
 
-	sudo -u postgres psql postgres
-	
-Now you are in *psql*, the command interface for postgresql, and in the database *postgres*. In your terminal it looks like this at the moment:
+   .. code-block:: console
 
-	postgres=#
+	$ sudo -u postgres psql postgres
 
-To change your password, type
+   Now you are in *psql*, the command interface for postgresql, and in the database *postgres*. In your terminal it looks like this at the moment
 
-	\password postgres
-	
-and type your new password when asked for it.
+   .. code-block:: console
 
+	$ postgres=#
 
+   To change your password::
 
-*Step 2 – Create a database* (for testing)
+	$ \password postgres
 
-If you want to create a db, posgresql has to know, which user you are. Therefore you have to type `-u username` in front of the command `createdb`. If you type the following, it means that you as the user *postgres* want to create a database wich is called *mydb*.
+   and type your new password when asked for it.
 
-	sudo -u postgres createdb mydb
+#. *Create a database* (for testing)
 
+   If you want to create a db, posgresql has to know, which user you are. Therefore you have to type `-u username` in front of the command `createdb`. If you type the following, it means that you as the user *postgres* want to create a database wich is called *mydb*.
+
+   .. code-block:: console
+
+	$ sudo -u postgres createdb mydb
 
 **For geonode**
 
-*Remark*: If you want to use the *postgis extension* for *postgresql* then you may follow the instructions from this site .... .
-If you do not need that (from the beginning) you can follow this instruction. You can even add the *posgis extension* later following the steps from the section *Alternative*. Anyway it is recommended to do the common version. 
+   If you do not need that (from the beginning) you can follow this instruction. You can even add the *posgis extension* later following the
+   steps from the section *Alternative*. Anyway it is recommended to do the common version. 
 
 
-*Step 1 – Create a new user (geonode)*
+#. *Create a new user (geonode)*
 
-In order to use postgresql in geonode, you have to create a new user *geonode*, which is the owner of a new database, also called *geonode*. So first create a new user by typing
+   In order to use postgresql in geonode, you have to create a new user *geonode*, which is the owner of a new database, also called *geonode*. So first create a new user by typing
 
-	sudo -u postgres createuser -P geonode
-
-This means, that you as the user *postgres* create a new user called *geonode*. `-P` indicates, that this user will have a password (*geonode*). 
-
-
-
-*Step 2 - Create new database*
-
-After creating the new user you can create the db *geonode*:
-
-	sudo -u postgres createdb -O geonode geonode
+   .. code-block:: console
 	
-	
+	$ sudo -u postgres createuser -P geonode
+
+   This means, that you as the user *postgres* create a new user called *geonode*. `-P` indicates, that this user will have a password (*geonode*). 
+
+#. *Create new database*
+
+   After creating the new user you can create the db *geonode*:
+
+   .. code-block:: console
+
+	$ sudo -u postgres createdb -O geonode geonode
+
+

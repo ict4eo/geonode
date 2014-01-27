@@ -40,7 +40,7 @@ class MapsTest(TestCase):
     """Tests geonode.maps app/module
     """
 
-    fixtures = ['initial_data.json']
+    fixtures = ['initial_data.json', 'bobby']
 
     def setUp(self):
         self.user = 'admin'
@@ -259,7 +259,7 @@ community."
                           content_type="application/json")
         self.assertEquals(response.status_code, 404)
 
-        # Test that GET retunrs permissions
+        # Test that GET returns permissions
         response = c.get(url(mapid))
         assert('permissions' in response.content)
 

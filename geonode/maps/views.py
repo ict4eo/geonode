@@ -26,7 +26,7 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.exceptions import PermissionDenied
 from django.core.urlresolvers import reverse
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect, HttpResponseNotAllowed, HttpResponseServerError
 from django.shortcuts import render_to_response
 from django.conf import settings
 from django.template import RequestContext
@@ -48,6 +48,8 @@ from geonode.security.enumerations import AUTHENTICATED_USERS, ANONYMOUS_USERS
 from geonode.security.views import _perms_info
 from geonode.documents.models import get_related_documents
 from geonode.utils import ogc_server_settings
+from geonode.base.models import ContactRole
+from geonode.people.forms import ProfileForm, PocForm
 
 logger = logging.getLogger("geonode.maps.views")
 
@@ -122,38 +124,72 @@ def map_detail(request, mapid, template='maps/map_detail.html'):
         'layers': layers,
         'permissions_json': json.dumps(_perms_info(map_obj, MAP_LEV_NAMES)),
         "documents": get_related_documents(map_obj),
+        'ows': getattr(ogc_server_settings, 'ows', ''),
     }))
-
 
 @login_required
 def map_metadata(request, mapid, template='maps/map_metadata.html'):
-    '''
-    The view that displays a form for
-    editing map metadata
-    '''
+    
     map_obj = _resolve_map(request, mapid, msg=_PERMISSION_MSG_METADATA)
 
-    if request.method == "POST":
-        # Change metadata, return to map info page
-        map_form = MapForm(request.POST, instance=map_obj, prefix="map")
-        if map_form.is_valid():
-            map_obj = map_form.save(commit=False)
-            if map_form.cleaned_data["keywords"]:
-                map_obj.keywords.add(*map_form.cleaned_data["keywords"])
-            else:
-                map_obj.keywords.clear()
-            map_obj.save()
+    poc = map_obj.poc
+    metadata_author = map_obj.metadata_author
 
-            return HttpResponseRedirect(reverse('map_detail', args=(map_obj.id,)))
+    if request.method == "POST":
+        map_form = MapForm(request.POST, instance=map_obj, prefix="resource")
     else:
-        # Show form
-        map_form = MapForm(instance=map_obj, prefix="map")
+        map_form = MapForm(instance=map_obj, prefix="resource")
+
+    if request.method == "POST" and map_form.is_valid():
+        new_poc = map_form.cleaned_data['poc']
+        new_author = map_form.cleaned_data['metadata_author']
+        new_keywords = map_form.cleaned_data['keywords']
+
+        if new_poc is None:
+            if poc.user is None:
+                poc_form = ProfileForm(request.POST, prefix="poc", instance=poc)
+            else:
+                poc_form = ProfileForm(request.POST, prefix="poc")
+            if poc_form.has_changed and poc_form.is_valid():
+                new_poc = poc_form.save()
+
+        if new_author is None:
+            if metadata_author.user is None:
+                author_form = ProfileForm(request.POST, prefix="author", 
+                    instance=metadata_author)
+            else:
+                author_form = ProfileForm(request.POST, prefix="author")
+            if author_form.has_changed and author_form.is_valid():
+                new_author = author_form.save()
+
+        if new_poc is not None and new_author is not None:
+            the_map = map_form.save()
+            the_map.poc = new_poc
+            the_map.metadata_author = new_author
+            the_map.keywords.clear()
+            the_map.keywords.add(*new_keywords)
+            return HttpResponseRedirect(reverse('map_detail', args=(map_obj.id,)))
+
+    if poc.user is None:
+        poc_form = ProfileForm(instance=poc, prefix="poc")
+    else:
+        map_form.fields['poc'].initial = poc.id
+        poc_form = ProfileForm(prefix="poc")
+        poc_form.hidden=True
+
+    if metadata_author.user is None:
+        author_form = ProfileForm(instance=metadata_author, prefix="author")
+    else:
+        map_form.fields['metadata_author'].initial = metadata_author.id
+        author_form = ProfileForm(prefix="author")
+        author_form.hidden=True
 
     return render_to_response(template, RequestContext(request, {
         "map": map_obj,
-        "map_form": map_form
+        "map_form": map_form,
+        "poc_form": poc_form,
+        "author_form": author_form,
     }))
-
 
 @login_required
 def map_remove(request, mapid, template='maps/map_remove.html'):
@@ -279,7 +315,7 @@ def new_map_config(request):
     '''
     View that creates a new map.
 
-    If the query argument 'copy' is given, the inital map is
+    If the query argument 'copy' is given, the initial map is
     a copy of the map with the id specified, otherwise the
     default map configuration is used.  If copy is specified
     and the map specified does not exist a 404 is returned.
@@ -331,7 +367,7 @@ def new_map_config(request):
                 layers.append(MapLayer(
                     map = map_obj,
                     name = layer.typename,
-                    ows_url = ogc_server_settings.ows,
+                    ows_url = ogc_server_settings.public_url + "wms",
                     layer_params=json.dumps( layer.attribute_config()),
                     visibility = True
                 ))
@@ -395,11 +431,13 @@ def map_download(request, mapid, template='maps/map_download.html'):
 
         resp, content = http_client.request(url, 'POST', body=mapJson)
 
-        if resp.status not in (400, 404, 417):
+        status = int(resp.status)
+
+        if status == 200:
             map_status = json.loads(content)
             request.session["map_status"] = map_status
         else:
-            pass # XXX fix
+            raise Exception('Could not start the download of %s. Error was: %s' % (mapObject.title, content))
 
     locked_layers = []
     remote_layers = []
@@ -424,7 +462,7 @@ def map_download(request, mapid, template='maps/map_download.html'):
          "locked_layers": locked_layers,
          "remote_layers": remote_layers,
          "downloadable_layers": downloadable_layers,
-         "geoserver" : ogc_server_settings.LOCATION,
+         "geoserver" : ogc_server_settings.public_url,
          "site" : settings.SITEURL
     }))
 
@@ -458,6 +496,38 @@ def map_wmc(request, mapid, template="maps/wmc.xml"):
         'map': mapObject,
         'siteurl': settings.SITEURL,
     }), mimetype='text/xml')
+
+def map_wms(request, mapid):
+    """
+    Publish local map layers as group layer in local OWS.
+
+    /maps/:id/wms
+
+    GET: return endpoint information for group layer,
+    PUT: update existing or create new group layer.
+    """
+
+    mapObject = _resolve_map(request, mapid, 'maps.view_map')
+
+    if request.method == 'PUT':
+        try:
+            layerGroupName = mapObject.publish_layer_group()
+            response = dict(
+                layerGroupName=layerGroupName,
+                ows=getattr(ogc_server_settings, 'ows', ''),
+            )
+            return HttpResponse(json.dumps(response), mimetype="application/json")
+        except FailedRequestError:
+            return HttpResponseServerError()
+        
+    if request.method == 'GET':
+        response = dict(
+            layerGroupName=getattr(mapObject.layer_group, 'name', ''),
+            ows=getattr(ogc_server_settings, 'ows', ''),
+        )
+        return HttpResponse(json.dumps(response), mimetype="application/json")
+
+    return HttpResponseNotAllowed(['PUT', 'GET'])
 
 #### MAPS PERMISSIONS ####
 

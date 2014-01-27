@@ -30,7 +30,7 @@ def resource_urls(request):
 
     return dict(
         STATIC_URL=settings.STATIC_URL,
-        GEOSERVER_BASE_URL=ogc_server_settings.LOCATION,
+        GEOSERVER_BASE_URL=ogc_server_settings.public_url,
         CATALOGUE_BASE_URL=default_catalogue_backend()['URL'],
         REGISTRATION_OPEN=settings.REGISTRATION_OPEN,
         VERSION=get_version(),
@@ -43,5 +43,7 @@ def resource_urls(request):
         DEBUG_STATIC = getattr(settings, "DEBUG_STATIC", False),
         MF_PRINT_ENABLED = ogc_server_settings.MAPFISH_PRINT_ENABLED,
         PRINTNG_ENABLED = ogc_server_settings.PRINTNG_ENABLED,
-        GS_SECURITY_ENABLED = ogc_server_settings.GEONODE_SECURITY_ENABLED
+        GS_SECURITY_ENABLED = ogc_server_settings.GEONODE_SECURITY_ENABLED,
+        PROXY_URL = getattr(settings, 'PROXY_URL', '/proxy/?url='),
+        SOCIAL_BUTTONS = getattr(settings, 'SOCIAL_BUTTONS', True)
     )

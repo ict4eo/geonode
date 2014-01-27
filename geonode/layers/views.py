@@ -93,9 +93,9 @@ _PERMISSION_MSG_VIEW = _("You are not permitted to view this layer")
 
 def _resolve_layer(request, typename, permission='layers.change_layer',
                    msg=_PERMISSION_MSG_GENERIC, **kwargs):
-    '''
+    """
     Resolve the layer by the provided typename and check the optional permission.
-    '''
+    """
     return resolve_object(request, Layer, {'typename':typename},
                           permission = permission, permission_msg=msg, **kwargs)
 
@@ -184,11 +184,11 @@ def layer_detail(request, layername, template='layers/layer_detail.html'):
     layer = _resolve_layer(request, layername, 'layers.view_layer', _PERMISSION_MSG_VIEW)
 
     keys = [lkw.name for lkw in layer.keywords.all()]
-    print "188:keys:", keys
+    #print "187:keys:", keys
     if 'sos' in keys or 'SOS' in keys:  # new code for sos option - ICT4EO
         template = 'layers/layer_detail_SOS.html'
 
-    maplayer = GXPLayer(name = layer.typename, ows_url = ogc_server_settings.LOCATION + "wms", layer_params=json.dumps( layer.attribute_config()))
+    maplayer = GXPLayer(name = layer.typename, ows_url = ogc_server_settings.public_url + "wms", layer_params=json.dumps( layer.attribute_config()))
 
     layer.srid_url = "http://www.spatialreference.org/ref/" + layer.srid.replace(':','/').lower() + "/"
 
@@ -212,7 +212,6 @@ def layer_detail(request, layername, template='layers/layer_detail.html'):
 
 
 @login_required
-
 def layer_metadata(request, layername, template='layers/layer_metadata.html'):
     layer = _resolve_layer(request, layername, 'layers.change_layer', _PERMISSION_MSG_METADATA)
     layer_attribute_set = inlineformset_factory(Layer, Attribute, extra=0, form=LayerAttributeForm, )
@@ -220,14 +219,11 @@ def layer_metadata(request, layername, template='layers/layer_metadata.html'):
     poc = layer.poc
     metadata_author = layer.metadata_author
 
-    ContactRole.objects.get(resource=layer, role=layer.poc_role)
-    ContactRole.objects.get(resource=layer, role=layer.metadata_author_role)
-
     if request.method == "POST":
-        layer_form = LayerForm(request.POST, instance=layer, prefix="layer")
+        layer_form = LayerForm(request.POST, instance=layer, prefix="resource")
         attribute_form = layer_attribute_set(request.POST, instance=layer, prefix="layer_attribute_set", queryset=Attribute.objects.order_by('display_order'))
     else:
-        layer_form = LayerForm(instance=layer, prefix="layer")
+        layer_form = LayerForm(instance=layer, prefix="resource")
         attribute_form = layer_attribute_set(instance=layer, prefix="layer_attribute_set", queryset=Attribute.objects.order_by('display_order'))
 
     if request.method == "POST" and layer_form.is_valid() and attribute_form.is_valid():
@@ -423,7 +419,8 @@ def layer_style_manage(req, layername):
             cat.save(gs_layer)
 
             # Save to Django
-            set_styles(layer, cat)
+            layer = set_styles(layer, cat)
+            layer.save()
             return HttpResponseRedirect(reverse('layer_detail', args=(layer.typename,)))
         except (FailedRequestError, EnvironmentError, MultiValueDictKeyError) as e:
             msg = ('Error Saving Styles for Layer "%s"'  % (layer.name)
