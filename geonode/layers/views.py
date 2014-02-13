@@ -749,12 +749,8 @@ def sos_layer_csv(request, layername):
         print "TESTING: One FOI, all props: %s items" % len(lists)
         response = HttpResponse(mimetype='text/csv')
         response['Content-Disposition'] = 'attachment;filename=sos.csv'
-        header = ["time", "house", "temp"]
         writer = csv.writer(response)
-        #writer = csv.DictWriter(response, fieldnames=["time", "house", "temp"], delimeter=",") // to include headings - bolelang
-        writer.writerow(header)
-        writer.writerows(lists)
-        #writer.writeheader()
+        writer.writerows(lists) # headers are included in lists. To remove this set show_headers to false in the sos_swe_data_list() in ows.py
         return response
     else:
         return None
