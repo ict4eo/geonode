@@ -136,18 +136,6 @@ gxp.plugins.TimeSeriesPopup = Ext.extend(gxp.plugins.Tool, {
                             //alert(evt.features[0].attributes.id)                            
                             var title = x.get("title") || x.get("name");
                             this.displayPopup(evt, title, evt.features[0].attributes.id);
-                            /*
-                            if (infoFormat == "text/html") {
-                                var match = evt.text.match(/<body[^>]*>([\s\S]*)<\/body>/);
-                                if (match && !match[1].match(/^\s*$/)) {
-                                    this.displayPopup(evt, title, match[1]);
-                                }
-                            } else if (infoFormat == "text/plain") {
-                                this.displayPopup(evt, title, '<pre>' + evt.text + '</pre>');
-                            } else if (evt.features && evt.features.length > 0) {
-                                this.displayPopup(evt, title, null,  x.get("getFeatureInfo"));
-                            }
-                            */
                         },
                         scope: this
                     }
@@ -219,15 +207,7 @@ gxp.plugins.TimeSeriesPopup = Ext.extend(gxp.plugins.Tool, {
             popup = this.popupCache[popupKey];
         }
     }
-    
-    /*addOutput: function(config) {
-        return gxp.plugins.TimeSeriesPopup.superclass.addOutput.call(this, Ext.apply({
-            title: "Time Series Panel",
-            html: "this is where the graphs will go"
-        }, config)); 
-            
-    }
-    */
+
 });
 
 Ext.preg(gxp.plugins.TimeSeriesPopup.prototype.ptype, gxp.plugins.TimeSeriesPopup);
