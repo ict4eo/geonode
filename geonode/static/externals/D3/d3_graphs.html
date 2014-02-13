@@ -23,13 +23,17 @@ body {
 </style>
 <div id='content'></div>
 <script type="text/javascript"> 
+
+    var url = document.URL ;
     
     var margin = {top: 20, right: 20, bottom: 30, left: 50},
           width = 500 - margin.left - margin.right,
           height = 300 - margin.top - margin.bottom;
 
-      var parseDate = d3.time.format("%Y-%m-%dT%H:%M:%S.%LZ").parse;
-
+      //var parseDate = d3.time.format("%Y-%m-%dT%H:%M:%S.%LZ").parse; //maybe control this with an if-statement to parse different time formats currently iso8601
+      // 2006-01-24T00:00:00.000+02:00
+      var parseDate = d3.time.format("%Y-%m-%dT%H:%M:%S.%L+02:00").parse; // the %Z doesnt work for now..known d3 issue..need to bring it in as a variable from regex
+      
       var x = d3.time.scale()
           .range([0, width]);
 
@@ -43,10 +47,6 @@ body {
       var yAxis = d3.svg.axis()
           .scale(y)
           .orient("left");
-          
-      var line = d3.svg.line()
-          .x(function(d) { return x(d.date); })
-          .y(function(d) { return y(d.close); });
 
       var svg = d3.select('#content').append("svg")
           .attr("width", width + margin.left + margin.right)
@@ -54,17 +54,29 @@ body {
           .append("g")
           .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
           
-      d3.csv("http://127.0.0.1:8000/layers/geonode:smart_sos_wfs_temperature/sos/csv", function(error, csv_data) {
+      d3.csv(url + "/sos/csv", function(error, csv_data) { 
+          //keys: header items
+          var keys = d3.keys(csv_data[0]);
+
+          var time = keys[0];
+          var foi = keys[1];
+          var obsProp = keys[2];
+          
+          var line = d3.svg.line()
+          .x(function(d) { return x(d[time]); })
+          .y(function(d) { return y(d[obsProp]); });
+          
           data = csv_data.filter(function(row){ 
-              return row['house'] == Ext.getCmp('fid').value;
-              }) 
+              return row[foi] == Ext.getCmp('fid').value;
+          })
+               
           data.forEach(function(d) { 
-              d.time = parseDate(d.time);
-              d.temp = +d.temp; 
+              d[time] = parseDate(d[time]);
+              d[obsProp] = +d[obsProp]; 
           });
           //console.log(dataset)
-          x.domain(d3.extent(data, function(d) { return d.time; }));
-          y.domain(d3.extent(data, function(d) { return d.temp; }));
+          x.domain(d3.extent(data, function(d) { return d[time]; }));
+          y.domain(d3.extent(data, function(d) { return d[obsProp]; }));
 
           svg.append("g")
             .attr("class", "x axis")
@@ -83,10 +95,10 @@ body {
             .attr("y", 6)
             .attr("dy", ".71em")
             .style("text-anchor", "end")
-            .text("Temperature C"); //this will hold the unit of measurement of the variable 
+            .text(obsProp); //this will hold the unit of measurement of the variable 
 
           svg.append("path")
-            .data(data)
+            .datum(data)
             .attr("class", "line")
             .attr("d", line);
             
@@ -94,11 +106,11 @@ body {
             .data(data)
             .enter()
             .append("circle")
-            .attr("cx", function(d) {return x(d.time);}) //these will have to be variables
-            .attr("cy", function(d) {return y(d.temp);})
+            .attr("cx", function(d) {return x(d[time]);}) 
+            .attr("cy", function(d) {return y(d[obsProp]);})
             .attr("r", 3)
             .attr("opacity", 1)
-            .append("title").text(function(d) {return "Time: " + d.time + "\nValue: " + d.temp ;});
+            .append("title").text(function(d) {return "Time: " + d[time] + "\nValue: " + d[obsProp] ;});
       });
       
 </script>       
