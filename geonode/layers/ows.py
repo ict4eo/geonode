@@ -192,7 +192,7 @@ def wps_execute_layer_attribute_statistics(layer_name, field):
 ## added by ict4eo
 ############################# SOS DATA HANDLING ##############################
 
-def sos_swe_data_list(response, constants=[], show_headers=False):
+def sos_swe_data_list(response, constants=[], show_headers=True):
     """Return data values from <swe:value> in a SOS XML as a list of lists.
     
     Parameters
