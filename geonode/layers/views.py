@@ -185,8 +185,11 @@ def layer_detail(request, layername, template='layers/layer_detail.html'):
 
     keys = [lkw.name for lkw in layer.keywords.all()]
     #print "187:keys:", keys
-    if 'sos' in keys or 'SOS' in keys:  # new code for sos option - ICT4EO
+    if 'sos' in keys or 'SOS' in keys:  # new code for sos option - ICT4EO - Derek
         template = 'layers/layer_detail_SOS.html'
+    #similarly for netcdf - added by ICT4EO - Bolelang
+    #elif 'netcdf' in keys or 'NetCDF' in keys: 
+    #   template = 'layers/layer_detail_NetCDF.html'
 
     maplayer = GXPLayer(name = layer.typename, ows_url = ogc_server_settings.public_url + "wms", layer_params=json.dumps( layer.attribute_config()))
 
@@ -754,6 +757,19 @@ def sos_layer_csv(request, layername):
         return response
     else:
         return None
+        
+########################################################################
+# note by ICT4EO - Bolelang
+# We need this to gain access to layer keywords which will be accessed by the tools (gxp)
+# usisng javascript, in order to select available - appropriate function for the time series tool
+# this may be changed at a later stage once we figure out how to extract layers keywords form other views
+# or from the catalog directly
+
+def layer_keywords(request, layername):
+    layer = _resolve_layer(request, layername, 'layers.view_layer', _PERMISSION_MSG_VIEW)
+
+    keys = [lkw.name for lkw in layer.keywords.all()]
+    return HttpResponse(json.dumps(keys))
         
 ## added by ict4eo for ncWMS
 ################ NETCDF DATA  via ncWMS: WMST ######################################
