@@ -24,93 +24,125 @@ body {
 <div id='content'></div>
 <script type="text/javascript"> 
 
-    var url = document.URL ;
-    
-    var margin = {top: 20, right: 20, bottom: 30, left: 50},
-          width = 500 - margin.left - margin.right,
-          height = 300 - margin.top - margin.bottom;
+$(document).ready(function(){
 
-      //var parseDate = d3.time.format("%Y-%m-%dT%H:%M:%S.%LZ").parse; //maybe control this with an if-statement to parse different time formats currently iso8601
-      // 2006-01-24T00:00:00.000+02:00
-      var parseDate = d3.time.format("%Y-%m-%dT%H:%M:%S.%L+02:00").parse; // the %Z doesnt work for now..known d3 issue..need to bring it in as a variable from regex
+    var url = document.URL;
+    var csv_url;
+    // make a call to the layer_info view for keywords
+    // use these to evaluate which keywords are present and hence which action the tool should proceed with
+    $.get(url + "/layer_info", function(data, status){
+        //alert("Status" + status+"\ndata "+data); - FOR TESTING
+
+        if (data.indexOf('sos') != -1) 
+            {
+              csv_url = url + "/sos/csv"
+            } 
+        else if (data.indexOf('netcdf') != -1) 
+            {
+              csv_url = url + "/netcdf/csv"
+            } 
+        else 
+            {
+              csv_url = "undefined"
+            };
+        
+        var margin = {top: 20, right: 20, bottom: 30, left: 50},
+            width = 500 - margin.left - margin.right,
+            height = 300 - margin.top - margin.bottom;
+
+        //var parseDate = d3.time.format("%Y-%m-%dT%H:%M:%S.%LZ").parse; //maybe control this with an if-statement to parse different time formats currently iso8601
+        // 2006-01-24T00:00:00.000+02:00
+        var parseDate = d3.time.format("%Y-%m-%dT%H:%M:%S.%L+02:00").parse; // the %Z doesnt work for now..known d3 issue..need to bring it in as a variable from regex
+          
+        var x = d3.time.scale()
+            .range([0, width]);
+
+        var y = d3.scale.linear()
+            .range([height, 0]);
+
+        var xAxis = d3.svg.axis()
+            .scale(x)
+            .orient("bottom");
+
+        var yAxis = d3.svg.axis()
+            .scale(y)
+            .orient("left");
+
+        var svg = d3.select('#content').append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+              
+        d3.csv(csv_url, function(error, csv_data) { 
+            //alert(csv_url); -FOR TESTING
+              
+            try {
+                //keys from header
+                var keys = d3.keys(csv_data[0]);
+
+                var time = keys[0];
+                var foi = keys[1];
+                var obsProp = keys[2];
+                  
+                var line = d3.svg.line()
+                    .x(function(d) { return x(d[time]); })
+                    .y(function(d) { return y(d[obsProp]); });
+                  
+                data = csv_data.filter(function(row){ 
+                    return row[foi] == Ext.getCmp('fid').value;
+                })
+                       
+                data.forEach(function(d) { 
+                    d[time] = parseDate(d[time]);
+                    d[obsProp] = +d[obsProp]; 
+                });
+                //console.log(dataset)
+                x.domain(d3.extent(data, function(d) { return d[time]; }));
+                y.domain(d3.extent(data, function(d) { return d[obsProp]; }));
+
+                svg.append("g")
+                    .attr("class", "x axis")
+                    .attr("transform", "translate(0," + height + ")")
+                    .call(xAxis)
+                    .append("text")
+                    .attr("x", 6)
+                    .style("text-anchor", "end");
+                    //.text("Time");
+
+                svg.append("g")
+                    .attr("class", "y axis")
+                    .call(yAxis)
+                    .append("text")
+                    .attr("transform", "rotate(-90)")
+                    .attr("y", 6)
+                    .attr("dy", ".71em")
+                    .style("text-anchor", "end")
+                    .text(obsProp); //this will hold the unit of measurement of the variable 
+
+                svg.append("path")
+                    .datum(data)
+                    .attr("class", "line")
+                    .attr("d", line);
+                    
+                svg.selectAll("circle")
+                    .data(data)
+                    .enter()
+                    .append("circle")
+                    .attr("cx", function(d) {return x(d[time]);}) 
+                    .attr("cy", function(d) {return y(d[obsProp]);})
+                    .attr("r", 3)
+                    .attr("opacity", 1)
+                    .append("title").text(function(d) {return "Time: " + d[time] + "\nValue: " + d[obsProp] ;});
+            } //end try
+            catch (err) {
+                //alert(err)
+                alert ("No time series available for this layer");
+            } //end catch
+        }); //end csv
+          
+      }); //end GET 
       
-      var x = d3.time.scale()
-          .range([0, width]);
-
-      var y = d3.scale.linear()
-          .range([height, 0]);
-
-      var xAxis = d3.svg.axis()
-          .scale(x)
-          .orient("bottom");
-
-      var yAxis = d3.svg.axis()
-          .scale(y)
-          .orient("left");
-
-      var svg = d3.select('#content').append("svg")
-          .attr("width", width + margin.left + margin.right)
-          .attr("height", height + margin.top + margin.bottom)
-          .append("g")
-          .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-          
-      d3.csv(url + "/sos/csv", function(error, csv_data) { 
-          //keys: header items
-          var keys = d3.keys(csv_data[0]);
-
-          var time = keys[0];
-          var foi = keys[1];
-          var obsProp = keys[2];
-          
-          var line = d3.svg.line()
-          .x(function(d) { return x(d[time]); })
-          .y(function(d) { return y(d[obsProp]); });
-          
-          data = csv_data.filter(function(row){ 
-              return row[foi] == Ext.getCmp('fid').value;
-          })
-               
-          data.forEach(function(d) { 
-              d[time] = parseDate(d[time]);
-              d[obsProp] = +d[obsProp]; 
-          });
-          //console.log(dataset)
-          x.domain(d3.extent(data, function(d) { return d[time]; }));
-          y.domain(d3.extent(data, function(d) { return d[obsProp]; }));
-
-          svg.append("g")
-            .attr("class", "x axis")
-            .attr("transform", "translate(0," + height + ")")
-            .call(xAxis)
-            .append("text")
-            .attr("x", 6)
-            .style("text-anchor", "end");
-            //.text("Time");
-
-          svg.append("g")
-            .attr("class", "y axis")
-            .call(yAxis)
-            .append("text")
-            .attr("transform", "rotate(-90)")
-            .attr("y", 6)
-            .attr("dy", ".71em")
-            .style("text-anchor", "end")
-            .text(obsProp); //this will hold the unit of measurement of the variable 
-
-          svg.append("path")
-            .datum(data)
-            .attr("class", "line")
-            .attr("d", line);
-            
-          svg.selectAll("circle")
-            .data(data)
-            .enter()
-            .append("circle")
-            .attr("cx", function(d) {return x(d[time]);}) 
-            .attr("cy", function(d) {return y(d[obsProp]);})
-            .attr("r", 3)
-            .attr("opacity", 1)
-            .append("title").text(function(d) {return "Time: " + d[time] + "\nValue: " + d[obsProp] ;});
-      });
+    }); //end JQuery
       
 </script>       
