@@ -251,7 +251,7 @@ def sos_observation_xml(url, version='1.0.0', xml=None, offerings=[],
     url : string
         Full HTTP address of SOS
     offerings : list
-        selected offerings from SOS; defaults to first one
+        selected offerings from SOS; defaults to all available
     responseFormat : string
         desire format for result data 
     observedProperties : list
@@ -266,11 +266,17 @@ def sos_observation_xml(url, version='1.0.0', xml=None, offerings=[],
         any items in the observedProperties)
     """
     _sos = SensorObservationService(url, version=version or '1.0.0', xml=xml or None) 
-    # single (or many?) offerings
-    offering = offerings  or _sos.offerings[0] 
-    _offerings = [offering.id]
+    # process any supplied offerings
+    if offerings:
+        for off in _sos.offerings:
+            _offerings = [off for off in _sos.offerings if off.id in offerings]  # look for matching IDs
+    else:
+        _offerings = []
+    # get offering IDs to be used
+    offerings_objs = _offerings or  _sos.offerings
+    sos_offerings = [off.id for off in offerings_objs]
     # format
-    responseFormat = responseFormat or offering.response_formats[0]
+    responseFormat = responseFormat or offerings_objs[0].response_formats[0]
     # properties
     if not allProperties:
         observedProperties = observedProperties or [offering.observed_properties[0]]
@@ -281,10 +287,10 @@ def sos_observation_xml(url, version='1.0.0', xml=None, offerings=[],
 
     if feature:
         return _sos.get_observation(
-            offerings=_offerings, responseFormat=responseFormat, 
+            offerings=sos_offerings, responseFormat=responseFormat,
             observedProperties=observedProperties, eventTime=eventTime,
             FEATUREOFINTEREST=feature)
     else:
         return _sos.get_observation(
-            offerings=_offerings, responseFormat=responseFormat, 
+            offerings=sos_offerings, responseFormat=responseFormat,
             observedProperties=observedProperties, eventTime=eventTime)
