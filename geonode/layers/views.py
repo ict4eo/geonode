@@ -730,6 +730,7 @@ def sos_layer_csv(request, layername):
     sup_inf_str = str(layer.supplemental_information)    
     print "layers/views:729", sup_inf_str, layername
     sup_info = eval(sup_inf_str)
+    offerings = sup_info['offerings'] or None
     sos_url = sup_info['sos_url']
     observedProperties = sup_info['observedProperties']
     
@@ -747,7 +748,7 @@ def sos_layer_csv(request, layername):
             feature = None
         #print url, feature
         #feature="pta_csir_house_01"
-        XML = sos_observation_xml(url, observedProperties=observedProperties, allProperties=False, feature=feature)
+        XML = sos_observation_xml(url, offerings=offerings, observedProperties=observedProperties, allProperties=False, feature=feature)
         lists = sos_swe_data_list(XML)
         print "TESTING: One FOI, all props: %s items" % len(lists)
         response = HttpResponse(mimetype='text/csv')
