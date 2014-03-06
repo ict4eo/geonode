@@ -22,7 +22,27 @@ body {
 
 </style>
 <div id='content'></div>
-<script type="text/javascript"> 
+<script type="text/javascript">
+     
+/*maybe control this with an if-statement to parse different time formats currently iso8601
+ the %Z, which handles time zone offset, doesnt work for now..known d3 issue..need to bring it in as a variable from regex
+ this could better be handled by a switch statement
+*/
+
+function dateFormat(time) {
+    var parseDate = d3.time.format("%Y-%m-%dT%H:%M:%S.%LZ").parse; 
+    // 2006-01-24T00:00:00.000+02:00
+    var parseDate_offset = d3.time.format("%Y-%m-%dT%H:%M:%S.%L+02:00").parse; 
+    if (parseDate(time) != null) 
+        {
+            time_formatted = parseDate(time)
+        } 
+    else {
+            time_formatted = parseDate_offset(time)
+        }
+        
+    return time_formatted
+}
 
 $(document).ready(function(){
 
@@ -50,9 +70,7 @@ $(document).ready(function(){
             width = 500 - margin.left - margin.right,
             height = 300 - margin.top - margin.bottom;
 
-        //var parseDate = d3.time.format("%Y-%m-%dT%H:%M:%S.%LZ").parse; //maybe control this with an if-statement to parse different time formats currently iso8601
-        // 2006-01-24T00:00:00.000+02:00
-        var parseDate = d3.time.format("%Y-%m-%dT%H:%M:%S.%L+02:00").parse; // the %Z doesnt work for now..known d3 issue..need to bring it in as a variable from regex
+        
           
         var x = d3.time.scale()
             .range([0, width]);
@@ -75,8 +93,6 @@ $(document).ready(function(){
             .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
               
         d3.csv(csv_url, function(error, csv_data) { 
-            //alert(csv_url); -FOR TESTING
-              
             try {
                 //keys from header
                 var keys = d3.keys(csv_data[0]);
@@ -94,8 +110,8 @@ $(document).ready(function(){
                 })
                        
                 data.forEach(function(d) { 
-                    d[time] = parseDate(d[time]);
-                    d[obsProp] = +d[obsProp]; 
+                    d[obsProp] = +d[obsProp];
+                    d[time] = dateFormat(d[time]);
                 });
                 //console.log(dataset)
                 x.domain(d3.extent(data, function(d) { return d[time]; }));
