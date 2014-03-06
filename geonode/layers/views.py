@@ -730,9 +730,9 @@ def sos_layer_csv(request, layername):
     sup_inf_str = str(layer.supplemental_information)    
     print "layers/views:729", sup_inf_str, layername
     sup_info = eval(sup_inf_str)
-    offerings = sup_info['offerings'] or None
-    sos_url = sup_info['sos_url']
-    observedProperties = sup_info['observedProperties']
+    offerings = sup_info.get('offerings')
+    sos_url = sup_info.get('sos_url')
+    observedProperties = sup_info.get('observedProperties')
     
     #sos_url = 'http://ict4eo.meraka.csir.co.za/AMD_SOS/sos'  # TEST ONLY
     #if 'sos_url' in request.GET and request.GET['sos_url']:
