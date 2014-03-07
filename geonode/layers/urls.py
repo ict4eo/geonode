@@ -50,8 +50,8 @@ urlpatterns = patterns(
     #url(r'^api/batch_delete/?$', 'batch_delete', name='batch_delete'),
 
     # added by ict4eo for SOS layers
-    url(r'^(?P<layername>[^/]*)/sos/csv/(?P<time>.+)$', 'sos_layer_csv', name='sos_layer_csv'),
-    # WAS: url(r'^(?P<layername>[^/]*)/sos/csv$', 'sos_layer_csv', name='sos_layer_csv'),
+    # WILL BE: url(r'^(?P<layername>[^/]*)/sos/csv/(?P<time>.+)$', 'sos_layer_csv', name='sos_layer_csv'),
+    url(r'^(?P<layername>[^/]*)/sos/csv$', 'sos_layer_csv', name='sos_layer_csv'),
     # added by ict4eo for layer keywords
     url(r'^(?P<layername>[^/]*)/layer_info$', 'layer_keywords', name='layer_keywords'),
     # added by ict4eo for ncWMS layers
