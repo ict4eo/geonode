@@ -12,12 +12,23 @@ body {
 }
 
 .x.axis path {
+
+}
+
+.x.axis line {
+    stroke: #C0C0C0;
+    stroke-opacity: .5;
+}
+
+.y.axis line {
+    stroke: #C0C0C0;
+    stroke-opacity: .5;
 }
 
 .line {
   fill: none;
   stroke: steelblue;
-  stroke-width: 1.5px;
+  stroke-width: 1px;
 }
 
 </style>
@@ -80,10 +91,13 @@ $(document).ready(function(){
 
         var xAxis = d3.svg.axis()
             .scale(x)
+            .tickSize(-height)
+            .tickSubdivide(true)
             .orient("bottom");
 
         var yAxis = d3.svg.axis()
             .scale(y)
+            .tickSize(-width)
             .orient("left");
 
         var svg = d3.select('#content').append("svg")
@@ -91,6 +105,11 @@ $(document).ready(function(){
             .attr("height", height + margin.top + margin.bottom)
             .append("g")
             .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+            
+        svg.append("rect")
+            .attr("width", "86%")
+            .attr("height", "84%")
+            .attr("fill", "white");
               
         d3.csv(csv_url, function(error, csv_data) { 
             try {
@@ -145,9 +164,10 @@ $(document).ready(function(){
                     .data(data)
                     .enter()
                     .append("circle")
+                    .attr("fill", "green")
                     .attr("cx", function(d) {return x(d[time]);}) 
                     .attr("cy", function(d) {return y(d[obsProp]);})
-                    .attr("r", 3)
+                    .attr("r", 2)
                     .attr("opacity", 1)
                     .append("title").text(function(d) {return "Time: " + d[time] + "\nValue: " + d[obsProp] ;});
             } //end try
