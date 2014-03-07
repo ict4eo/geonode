@@ -258,18 +258,21 @@ def sos_observation_xml(url, version='1.0.0', xml=None, offerings=[],
         filters results for selected properties from SOS; defaults to first one
         (unless allProperties is True)
     eventTime : string
-        filters results for a specified time
+        filters results for a specified instant or period.
+        Use ISO format YYYY-MM-DDTHH:mm:ss±HH. Periods of time (start and end) 
+        are separated by "/"; e.g. 2009-06-26T10:00:00+01/2009-06-26T11:00:00+01
     feature : string
         filters results for the ID of a feature_of_interest
     allProperties : boolean
         if allProperties is True, filters results for all properties (and ignores
         any items in the observedProperties)
     """
+    # GetCapabilites of SOS
     _sos = SensorObservationService(url, version=version or '1.0.0', xml=xml or None) 
     # process any supplied offerings
     if offerings:
-        for off in _sos.offerings:
-            _offerings = [off for off in _sos.offerings if off.id in offerings]  # look for matching IDs
+        for off in _sos.offerings: # look for matching IDs
+            _offerings = [off for off in _sos.offerings if off.id in offerings]
     else:
         _offerings = []
     # get offering IDs to be used
@@ -294,3 +297,4 @@ def sos_observation_xml(url, version='1.0.0', xml=None, offerings=[],
         return _sos.get_observation(
             offerings=sos_offerings, responseFormat=responseFormat,
             observedProperties=observedProperties, eventTime=eventTime)
+

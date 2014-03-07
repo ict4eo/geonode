@@ -716,16 +716,20 @@ def feature_edit_check(request, layername):
 ## added by ict4eo for sos
 ################################## SOS DATA ##################################
 
-def sos_layer_csv(request, layername):
+def sos_layer_csv(request, layername, time=None):
     """Return SOS data in CSV format for a layer that specifies a valid SOS URL.
+    
+    Parameters
+    ----------
+    time : string
+        Optional.   Time should conform to ISO format: YYYY-MM-DDTHH:mm:ss±HH.
+        Instance is given as one time value. Periods of time (start and end) are
+        separated by "/". Example: 2009-06-26T10:00:00+01/2009-06-26T11:00:00+01
     """
     #print request, layername
-    ### NB NB NB  - This is pure test code for now - any layer data is NOT used.
-    ### Sample link to use: http://localhost:8000/layers/layername/sos/csv
+    # Example link to use: http://localhost:8000/layers/layername/sos/csv
 
     import csv
-    #layer = _resolve_layer(request, layername, 'layers.view_layer', _PERMISSION_MSG_VIEW)
-    #need to get SOS url from layer attributes ???
     layer = _resolve_layer(request, layername, 'layers.view_layer', _PERMISSION_MSG_VIEW)    
     sup_inf_str = str(layer.supplemental_information)    
     print "layers/views:729", sup_inf_str, layername
@@ -733,9 +737,8 @@ def sos_layer_csv(request, layername):
     offerings = sup_info.get('offerings')
     sos_url = sup_info.get('sos_url')
     observedProperties = sup_info.get('observedProperties')
+    time = time
     
-    #sos_url = 'http://ict4eo.meraka.csir.co.za/AMD_SOS/sos'  # TEST ONLY
-    #if 'sos_url' in request.GET and request.GET['sos_url']:
     if sos_url:
         try:
             url = request.GET['sos_url']
@@ -747,14 +750,16 @@ def sos_layer_csv(request, layername):
         else:
             feature = None
         #print url, feature
-        #feature="pta_csir_house_01"
-        XML = sos_observation_xml(url, offerings=offerings, observedProperties=observedProperties, allProperties=False, feature=feature)
+        XML = sos_observation_xml(
+            url, offerings=offerings, observedProperties=observedProperties, 
+            allProperties=False, feature=feature, eventTime=time)
         lists = sos_swe_data_list(XML)
-        print "TESTING: One FOI, all props: %s items" % len(lists)
+        #print "%s items" % len(lists)
         response = HttpResponse(mimetype='text/csv')
         response['Content-Disposition'] = 'attachment;filename=sos.csv'
         writer = csv.writer(response)
-        writer.writerows(lists) # headers are included in lists. To remove this set show_headers to false in the sos_swe_data_list() in ows.py
+        # can set show_headers to false in the sos_swe_data_list() in ows.py
+        writer.writerows(lists) # headers are included by default in lists
         return response
     else:
         return None
@@ -848,8 +853,4 @@ def Wmst_detail(request, layername, template='layers/ncWMS_layer_details.html'):
 	"links" : links,
     "viewer": json.dumps(map_obj.viewer_json(* (DEFAULT_BASE_LAYERS + []))),
     }))
-
-    
-	
-	
 
