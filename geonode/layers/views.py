@@ -722,7 +722,7 @@ def sos_layer_csv(request, layername, time=None):
     Parameters
     ----------
     time : string
-        Optional.   Time should conform to ISO format: YYYY-MM-DDTHH:mm:ss±HH.
+        Optional.   Time should conform to ISO format: YYYY-MM-DDTHH:mm:ss+-HH
         Instance is given as one time value. Periods of time (start and end) are
         separated by "/". Example: 2009-06-26T10:00:00+01/2009-06-26T11:00:00+01
     """

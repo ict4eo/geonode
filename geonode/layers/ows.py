@@ -259,7 +259,7 @@ def sos_observation_xml(url, version='1.0.0', xml=None, offerings=[],
         (unless allProperties is True)
     eventTime : string
         filters results for a specified instant or period.
-        Use ISO format YYYY-MM-DDTHH:mm:ss±HH. Periods of time (start and end) 
+        Use ISO format YYYY-MM-DDTHH:mm:ss+-HH  Periods of time (start and end) 
         are separated by "/"; e.g. 2009-06-26T10:00:00+01/2009-06-26T11:00:00+01
     feature : string
         filters results for the ID of a feature_of_interest
