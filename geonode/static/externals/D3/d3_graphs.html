@@ -58,12 +58,15 @@ function dateFormat(time) {
 $(document).ready(function(){
 
     var url = document.URL;
-    var csv_url;
+    csv_url = url + "/additional_metadata" ; // url link from layer (or map) views
     // make a call to the layer_info view for keywords
     // use these to evaluate which keywords are present and hence which action the tool should proceed with
-    $.get(url + "/layer_info", function(data, status){
-        //alert("Status" + status+"\ndata "+data); - FOR TESTING
+    // make this a relative call . should work whether in layer or map
+     $.get(csv_url, function(data, status){
+        //alert("Status" + status+"\ndata "+data); //- FOR TESTING
+        //leaving it as is for when we are returning json from the view instaed of a csv file
 
+        /*  this is now done in views.py
         if (data.indexOf('sos') != -1) 
             {
               csv_url = url + "/sos/csv"
@@ -76,12 +79,12 @@ $(document).ready(function(){
             {
               csv_url = "undefined"
             };
+        */
+        
         
         var margin = {top: 20, right: 20, bottom: 30, left: 50},
             width = 500 - margin.left - margin.right,
             height = 300 - margin.top - margin.bottom;
-
-        
           
         var x = d3.time.scale()
             .range([0, width]);
