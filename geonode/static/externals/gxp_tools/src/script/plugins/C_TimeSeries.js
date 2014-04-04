@@ -31,7 +31,7 @@ Ext.namespace("gxp.plugins");
 /** api: constructor
  *  .. class:: TimeSeriesPopup(config)
  *
- *    Create a new popup which displays time series data for a particular point of interest
+ *    Create a new popup which displays time series data for a particular location of interest
  */
  
 gxp.plugins.TimeSeriesPopup = Ext.extend(gxp.plugins.Tool, {
@@ -52,7 +52,7 @@ gxp.plugins.TimeSeriesPopup = Ext.extend(gxp.plugins.Tool, {
      *  ``String``
      *  Text for feature info action tooltip (i18n).
      */
-    infoActionTip: "Get Time Series info",
+    infoActionTip: "Get Time Series Info",
     
     /** api: config[popupTitle]
      *  ``String``
@@ -73,11 +73,14 @@ gxp.plugins.TimeSeriesPopup = Ext.extend(gxp.plugins.Tool, {
      */
     format: "html",
     
-        /** api: method[addActions]
+    /** api: method[addActions]
      */
+     
     addActions: function() {
         this.popupCache = {};
-        var map= this.target.mapPanel.map;
+        
+        //var map= this.target.mapPanel.map;
+        
         var actions = gxp.plugins.TimeSeriesPopup.superclass.addActions.call(this, [{
             tooltip: this.infoActionTip,
             iconCls: "gxp-icon-selectfeature", // find appropriate icon-where?
@@ -85,7 +88,7 @@ gxp.plugins.TimeSeriesPopup = Ext.extend(gxp.plugins.Tool, {
             toggleGroup: this.toggleGroup,
             enableToggle: true,
             allowDepress: true,
-            map: map,
+            //map: map,
             toggleHandler: function(button, pressed) {
                 for (var i = 0, len = info.controls.length; i < len; i++){
                     if (pressed) {
@@ -150,6 +153,8 @@ gxp.plugins.TimeSeriesPopup = Ext.extend(gxp.plugins.Tool, {
         };
         
         this.target.mapPanel.layers.on("update", updateInfo, this);
+        this.target.mapPanel.layers.on("add", updateInfo, this);
+        this.target.mapPanel.layers.on("remove", updateInfo, this);
                 
         return actions;
     },
@@ -167,33 +172,34 @@ gxp.plugins.TimeSeriesPopup = Ext.extend(gxp.plugins.Tool, {
       //featureinfo = featureinfo || {};
       //alert(featureid)
       if (!(popupKey in this.popupCache)) {
-        this.removeOutput();
+        this.removeOutput(); //this will remove the content of the popup
         popup = this.addOutput({
             xtype: "gx_popup",
             id: "test",
             title: this.popupTitle + " : " + featureid,
-            layout: "fit",
+            layout:  "fit",
             fill: false,
             autoScroll: true,
+            collapsible: true,
+            maximizable: true,
             autoLoad: {url: '/static/externals/D3/d3_graphs.html', scripts: true }, //html file containing d3 code, params:{param1:"a", param2:"b"}
-            location: evt.feature,
+            location:  evt.xy, //makes the popup anchor on the point location evt.feature,
             map: this.target.mapPanel,
             width: 550,
             height: 350,
-            items: [{
-                xtype: "hidden",
-                id: "fid",
-                value: featureid,
-            }],
-            defaults: {
+            /*defaults: {
                 layout: "fit",
                 autoScroll: true,
                 autoHeight: true,
                 autoWidth: true,
-                collapsible: true,
-            }
+                
+            },*/
+            items: [{
+                xtype: "hidden",
+                id: "fid",
+                value: featureid,
+            }]
         });
-        //popup.on();
         popup.on({                    
                 close: (function(key) {
                     return function(panel){
@@ -205,7 +211,9 @@ gxp.plugins.TimeSeriesPopup = Ext.extend(gxp.plugins.Tool, {
         this.popupCache[popupKey] = popup;
       } else {
             popup = this.popupCache[popupKey];
-        }
+      }
+      
+      popup.doLayout();
     }
 
 });
