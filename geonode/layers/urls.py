@@ -51,9 +51,9 @@ urlpatterns = patterns(
 
     # added by ict4eo for SOS layers
     # WILL BE: url(r'^(?P<layername>[^/]*)/sos/csv/(?P<time>.+)$', 'sos_layer_csv', name='sos_layer_csv'),
-    url(r'^(?P<layername>[^/]*)/sos/csv$', 'sos_layer_csv', name='sos_layer_csv'),
+    url(r'^(?P<layername>[^/]*)/sos/csv$', 'layer_sos_csv', name='layer_sos_csv'),
     # added by ict4eo for layer keywords
-    url(r'^(?P<layername>[^/]*)/layer_info$', 'layer_keywords', name='layer_keywords'),
+    url(r'^(?P<layername>[^/]*)/additional_metadata$', 'get_metadata', name='get_metadata'),
     # added by ict4eo for ncWMS layers
     url(r'^nclayers/$', 'layer_wmst', name='layer_wmst'),
     url(r'^nclayers/search/?$', 'layer_wmst_search', name='layer_wmst_search'),
