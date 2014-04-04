@@ -712,11 +712,33 @@ def feature_edit_check(request, layername):
     else:
         return HttpResponse(json.dumps({'authorized': False}), mimetype="application/json")
 
+########################################################################
+# note by ICT4EO - Bolelang
+# We need access to layer keywords in order to determine the additional characteristics of a layer. 
+# we also need to acces the layers supplemental information at this level and parse it to the appropriate function
+#These could be sos, netcdf .. etc
+
+def get_metadata(request, layername):
+    layer = _resolve_layer(request, layername, 'layers.view_layer', _PERMISSION_MSG_VIEW)
+    print "line 723 request: ", request.GET
+    if 'feature' in request.GET:
+        feature = request.GET['feature']
+    else:
+        feature = None
+    keys = [lkw.name for lkw in layer.keywords.all()]
+    sup_inf_str = str(layer.supplemental_information) 
+    if "sos" in keys or "SOS" in keys:
+        return layer_sos_csv(feature, sup_inf_str, time=None)
+    # elif "netcdf" in keys or "NetCDF":
+        #return netcdf_layer_csv(request, layername, time=None)
+    else:
+        return None
+
 
 ## added by ict4eo for sos
 ################################## SOS DATA ##################################
 
-def sos_layer_csv(request, layername, time=None):
+def layer_sos_csv(feature, sup_inf_str, time=None):
     """Return SOS data in CSV format for a layer that specifies a valid SOS URL.
     
     Parameters
@@ -726,56 +748,31 @@ def sos_layer_csv(request, layername, time=None):
         Instance is given as one time value. Periods of time (start and end) are
         separated by "/". Example: 2009-06-26T10:00:00+01/2009-06-26T11:00:00+01
     """
-    #print request, layername
+    
     # Example link to use: http://localhost:8000/layers/layername/sos/csv
 
     import csv
-    layer = _resolve_layer(request, layername, 'layers.view_layer', _PERMISSION_MSG_VIEW)    
-    sup_inf_str = str(layer.supplemental_information)    
-    print "layers/views:729", sup_inf_str, layername
     sup_info = eval(sup_inf_str)
     offerings = sup_info.get('offerings')
-    sos_url = sup_info.get('sos_url')
+    url = sup_info.get('sos_url')
     observedProperties = sup_info.get('observedProperties')
     time = time
-    
-    if sos_url:
-        try:
-            url = request.GET['sos_url']
-        except MultiValueDictKeyError:
-            #TODO should return with message to user 
-            url = sos_url
-        if 'feature' in request.GET:
-            feature = request.GET['feature']
-        else:
-            feature = None
-        #print url, feature
-        XML = sos_observation_xml(
-            url, offerings=offerings, observedProperties=observedProperties, 
-            allProperties=False, feature=feature, eventTime=time)
-        lists = sos_swe_data_list(XML)
-        #print "%s items" % len(lists)
-        response = HttpResponse(mimetype='text/csv')
-        response['Content-Disposition'] = 'attachment;filename=sos.csv'
-        writer = csv.writer(response)
-        # can set show_headers to false in the sos_swe_data_list() in ows.py
-        writer.writerows(lists) # headers are included by default in lists
-        return response
-    else:
-        return None
-        
-########################################################################
-# note by ICT4EO - Bolelang
-# We need this to gain access to layer keywords which will be accessed by the tools (gxp)
-# usisng javascript, in order to select available - appropriate function for the time series tool
-# this may be changed at a later stage once we figure out how to extract layers keywords form other views
-# or from the catalog directly
-
-def layer_keywords(request, layername):
-    layer = _resolve_layer(request, layername, 'layers.view_layer', _PERMISSION_MSG_VIEW)
-
-    keys = [lkw.name for lkw in layer.keywords.all()]
-    return HttpResponse(json.dumps(keys))
+    print "layers/views:769", url, feature
+    XML = sos_observation_xml(
+    url, offerings=offerings, observedProperties=observedProperties, 
+    allProperties=False, feature=feature, eventTime=time)
+    lists = sos_swe_data_list(XML)
+    #print "%s items" % len(lists)
+    sos_data = HttpResponse(mimetype='text/csv')
+    sos_data['Content-Disposition'] = 'attachment;filename=sos.csv'
+    writer = csv.writer(sos_data)
+    writer.writerows(lists) # headers are included by default in lists, can set show_headers to false in the sos_swe_data_list() in ows.py
+    return sos_data
+    # for future use set the response to return JSON that includes format, data and style info
+    # service_result =  { format: ...
+    #                    'data': sos_data
+    #                     style: ....}
+    # return HttpResponse(json.dumps(service_result), mimetype="application/json")
         
 ## added by ict4eo for ncWMS
 ################ NETCDF DATA  via ncWMS: WMST ######################################
