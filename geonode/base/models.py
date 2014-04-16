@@ -1,6 +1,7 @@
 from datetime import datetime
 import os
 import hashlib
+import logging
 
 from django.db import models
 from django.db.models import Q
@@ -17,17 +18,10 @@ from geonode.base.enumerations import ALL_LANGUAGES, \
 from geonode.utils import bbox_to_wkt
 from geonode.people.models import Profile, Role
 from geonode.security.models import PermissionLevelMixin
-
 from taggit.managers import TaggableManager
 
-def get_default_category():
-    if settings.DEFAULT_TOPICCATEGORY:
-        try:
-            return TopicCategory.objects.get(identifier=settings.DEFAULT_TOPICCATEGORY)
-        except TopicCategory.DoesNotExist:
-            raise TopicCategory.DoesNotExist('The default TopicCategory indicated in settings is not found.')
-    else:
-        return TopicCategory.objects.all()[0]
+logger = logging.getLogger(__name__)
+
 
 class ContactRole(models.Model):
     """
@@ -153,6 +147,9 @@ class Thumbnail(models.Model):
         self._delete_thumb()
         super(Thumbnail,self).delete()
 
+    def __unicode__(self):
+        return self.thumb_file.name
+
 
 class ThumbnailMixin(object):
     """
@@ -169,6 +166,10 @@ class ThumbnailMixin(object):
         if render is None:
             raise Exception('Must have _render_thumbnail(spec) function')
         image = render(spec)
+
+        if not image:
+            return
+
         #Clean any orphan Thumbnail before
         Thumbnail.objects.filter(resourcebase__id=None).delete()
         
@@ -228,10 +229,7 @@ class ResourceBase(models.Model, PermissionLevelMixin, ThumbnailMixin):
     # internal fields
     uuid = models.CharField(max_length=36)
     owner = models.ForeignKey(User, blank=True, null=True)
-
     contacts = models.ManyToManyField(Profile, through='ContactRole')
-
-    # section 1
     title = models.CharField(_('title'), max_length=255, help_text=_('name by which the cited resource is known'))
     date = models.DateTimeField(_('date'), default = datetime.now, help_text=_('reference date for the cited resource')) # passing the method itself, not the result
 
@@ -352,6 +350,17 @@ class ResourceBase(models.Model, PermissionLevelMixin, ThumbnailMixin):
     def keyword_list(self):
         return [kw.name for kw in self.keywords.all()]
 
+    def spatial_representation_type_string(self):
+        if hasattr(self.spatial_representation_type, 'identifier'):
+            return self.spatial_representation_type.identifier
+        else:
+            if hasattr(self, 'storeType'): 
+                if self.storeType == 'coverageStore':
+                    return 'grid'
+                return 'vector'
+            else:
+                return None
+
     @property
     def keyword_csv(self):
         keywords_qs = self.keywords.all()
@@ -377,6 +386,8 @@ class ResourceBase(models.Model, PermissionLevelMixin, ThumbnailMixin):
                 continue
             if url.link_type == 'html':
                 links.append((self.title, 'Web address (URL)', 'WWW:LINK-1.0-http--link', url.url))
+            elif url.link_type in ('OGC:WMS', 'OGC:WFS', 'OGC:WCS'):
+                links.append((self.title, description, url.link_type, url.url))
             else:
                 description = '%s (%s Format)' % (self.title, url.name)
                 links.append((self.title, description, 'WWW:DOWNLOAD-1.0-http--download', url.url))
@@ -457,7 +468,7 @@ class Link(models.Model):
     link_type = models.CharField(max_length=255, choices = [(x, x) for x in LINK_TYPES])
     name = models.CharField(max_length=255, help_text=_('For example "View in Google Earth"'))
     mime = models.CharField(max_length=255, help_text=_('For example "text/xml"'))
-    url = models.TextField(unique=True, max_length=1000)
+    url = models.TextField(max_length=1000)
 
     objects = LinkManager()
 
@@ -484,6 +495,15 @@ def resourcebase_post_save(instance, sender, **kwargs):
                                            )
         resourcebase.metadata_author = ac
 
+    if hasattr(instance, 'set_default_permissions') and hasattr(instance, 'get_all_level_info'):
+        logger.debug('Checking for permissions.')
+
+        #  True if every key in the get_all_level_info dict is empty.
+        if all(map(lambda perm: not perm, instance.get_all_level_info().values())):
+            logger.debug('There are no permissions for this object, setting default perms.')
+            instance.set_default_permissions()
+
+
 def resourcebase_post_delete(instance, sender, **kwargs):
     """
     Since django signals are not propagated from child to parent classes we need to call this 
@@ -492,5 +512,3 @@ def resourcebase_post_delete(instance, sender, **kwargs):
     """
     if instance.thumbnail:
         instance.thumbnail.delete()
-        
-    

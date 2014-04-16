@@ -268,7 +268,17 @@ def gs_slurp(ignore_errors=True, verbosity=1, console=None, owner=None, workspac
     cat = Catalog(ogc_server_settings.internal_rest, _user, _password)
     if workspace is not None:
         workspace = cat.get_workspace(workspace)
-        resources = cat.get_resources(workspace=workspace)
+
+        #workspace should be returned if exists, otherwise throw an error
+        if workspace is not None:
+            #assume store exists within workspace:
+            if store is not None:
+                store = cat.get_store(store, workspace=workspace)
+                resources = cat.get_resources(store=store)
+            else:
+                resources = cat.get_resources(workspace=workspace)
+        else:
+            raise Exception("Workspace does not exist in the GeoServer instance")
     elif store is not None:
         store = cat.get_store(store)
         resources = cat.get_resources(store=store)
@@ -280,13 +290,13 @@ def gs_slurp(ignore_errors=True, verbosity=1, console=None, owner=None, workspac
         # filter out layers for delete comparison with GeoNode layers by following criteria:
         # enabled = true, if --skip-unadvertised: advertised = true, but disregard the filter parameter in the case of deleting layers
         resources_for_delete_compare = [k for k in resources_for_delete_compare if k.enabled == "true"]
-        if skip_unadvertised: resources_for_delete_compare = [k for k in resources_for_delete_compare if k.advertised == "true" or k.advertised == None]
+        if skip_unadvertised: resources_for_delete_compare = [k for k in resources_for_delete_compare if k.advertised == "true" or k.advertised == True or k.advertised is None]
     if filter:
         resources = [k for k in resources if filter in k.name]
 
     # filter out layers depending on enabled, advertised status:
     resources = [k for k in resources if k.enabled == "true"]
-    if skip_unadvertised: resources = [k for k in resources if k.advertised == "true" or k.advertised == None]
+    if skip_unadvertised: resources = [k for k in resources if k.advertised == "true" or k.advertised == True or k.advertised is None]
     
     # TODO: Should we do something with these?
     # i.e. look for matching layers in GeoNode and also disable? 

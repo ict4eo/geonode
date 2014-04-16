@@ -51,13 +51,13 @@ from geonode.utils import default_map_config
 from geonode.utils import GXPLayer
 from geonode.utils import GXPMap
 from geonode.layers.utils import save
-from geonode.layers.utils import layer_set_permissions
 from geonode.utils import resolve_object
 from geonode.people.forms import ProfileForm, PocForm
 from geonode.security.views import _perms_info_json
 from geonode.documents.models import get_related_documents
 from geonode.utils import ogc_server_settings
 from geoserver.resource import FeatureType
+from geonode.contrib.groups.models import Group
 
 # added by ict4eo for sos
 from ows import sos_swe_data_list, sos_observation_xml
@@ -191,7 +191,12 @@ def layer_detail(request, layername, template='layers/layer_detail.html'):
     #elif 'netcdf' in keys or 'NetCDF' in keys: 
     #   template = 'layers/layer_detail_NetCDF.html'
 
-    maplayer = GXPLayer(name = layer.typename, ows_url = ogc_server_settings.public_url + "wms", layer_params=json.dumps( layer.attribute_config()))
+    # maplayer = GXPLayer(name = layer.typename, ows_url = ogc_server_settings.public_url + "wms", layer_params=json.dumps( layer.attribute_config()))
+    
+    ows_url = ogc_server_settings.public_url + "%s/%s/wms" % (layer.workspace, 
+        layer.name)
+        
+    maplayer = GXPLayer(name = layer.name, ows_url = ows_url, layer_params=json.dumps( layer.attribute_config()))
 
     layer.srid_url = "http://www.spatialreference.org/ref/" + layer.srid.replace(':','/').lower() + "/"
 
@@ -204,13 +209,23 @@ def layer_detail(request, layername, template='layers/layer_detail.html'):
 
     # center/zoom don't matter; the viewer will center on the layer bounds
     map_obj = GXPMap(projection="EPSG:900913")
-    DEFAULT_BASE_LAYERS = default_map_config()[1]
+    NON_WMS_BASE_LAYERS = [la for la in default_map_config()[1] if la.ows_url is None]
 
+    if layer.storeType=='dataStore':
+        links = layer.link_set.download().filter(
+            name__in=settings.DOWNLOAD_FORMATS_VECTOR)
+    else:
+        links = layer.link_set.download().filter(
+            name__in=settings.DOWNLOAD_FORMATS_RASTER)
+    metadata = layer.link_set.metadata().filter(
+        name__in=settings.DOWNLOAD_FORMATS_METADATA)
     return render_to_response(template, RequestContext(request, {
         "layer": layer,
-        "viewer": json.dumps(map_obj.viewer_json(* (DEFAULT_BASE_LAYERS + [maplayer]))),
+        "viewer": json.dumps(map_obj.viewer_json(* (NON_WMS_BASE_LAYERS + [maplayer]))),
         "permissions_json": _perms_info_json(layer, LAYER_LEV_NAMES),
         "documents": get_related_documents(layer),
+        "links": links,
+        "metadata": metadata,
     }))
 
 
@@ -503,19 +518,25 @@ def layer_replace(request, layername, template='layers/layer_replace.html'):
 
 @login_required
 def layer_remove(request, layername, template='layers/layer_remove.html'):
-    layer = _resolve_layer(request, layername, 'layers.delete_layer',
-                           _PERMISSION_MSG_DELETE)
+    try:
+        layer = _resolve_layer(request, layername, 'layers.delete_layer',
+                               _PERMISSION_MSG_DELETE)
 
-    if (request.method == 'GET'):
-        return render_to_response(template,RequestContext(request, {
-            "layer": layer
-        }))
-    if (request.method == 'POST'):
-        layer.delete()
-        return HttpResponseRedirect(reverse("layer_browse"))
-    else:
-        return HttpResponse("Not allowed",status=403)
-
+        if (request.method == 'GET'):
+            return render_to_response(template,RequestContext(request, {
+                "layer": layer
+            }))
+        if (request.method == 'POST'):
+            layer.delete()
+            return HttpResponseRedirect(reverse("layer_browse"))
+        else:
+            return HttpResponse("Not allowed",status=403)
+    except PermissionDenied:
+        return HttpResponse(
+                'You are not allowed to delete this layer',
+                mimetype="text/plain",
+                status=401
+        )
 
 def layer_batch_download(request):
     """
@@ -567,40 +588,6 @@ def layer_batch_download(request):
         url = "%srest/process/batchDownload/status/%s" % (ogc_server_settings.LOCATION, download_id)
         resp,content = http_client.request(url,'GET')
         return HttpResponse(content, status=resp.status)
-
-def layer_permissions(request, layername):
-    try:
-        layer = _resolve_layer(request, layername, 'layers.change_layer_permissions')
-    except PermissionDenied:
-        # we are handling this in a non-standard way
-        return HttpResponse(
-            'You are not allowed to change permissions for this layer',
-            status=401,
-            mimetype='text/plain')
-
-    if request.method == 'POST':
-        permission_spec = json.loads(request.raw_post_data)
-        layer_set_permissions(layer, permission_spec)
-
-        return HttpResponse(
-            json.dumps({'success': True}),
-            status=200,
-            mimetype='text/plain'
-        )
-
-    elif request.method == 'GET':
-        permission_spec = json.dumps(layer.get_all_level_info())
-        return HttpResponse(
-            json.dumps({'success': True, 'permissions': permission_spec}),
-            status=200,
-            mimetype='text/plain'
-        )
-    else:
-        return HttpResponse(
-            'No methods other than get and post are allowed',
-            status=401,
-            mimetype='text/plain')
-
 
 def resolve_user(request):
     user = None
@@ -669,8 +656,6 @@ def layer_acls(request):
             return HttpResponse(_("Bad HTTP Authorization Credentials."),
                                 status=401,
                                 mimetype="text/plain")
-
-
     all_readable = set()
     all_writable = set()
     for bck in get_auth_backends():
@@ -707,7 +692,7 @@ def feature_edit_check(request, layername):
     """
     layer = get_object_or_404(Layer, typename=layername)
     feature_edit = getattr(settings, "GEOGIT_DATASTORE", None) or ogc_server_settings.DATASTORE 
-    if request.user.has_perm('maps.change_layer', obj=layer) and layer.storeType == 'dataStore' and feature_edit:
+    if request.user.has_perm('layers.change_layer', obj=layer) and layer.storeType == 'dataStore' and feature_edit:
         return HttpResponse(json.dumps({'authorized': True}), mimetype="application/json")
     else:
         return HttpResponse(json.dumps({'authorized': False}), mimetype="application/json")
@@ -733,6 +718,8 @@ def get_metadata(request, layername):
         #return netcdf_layer_csv(request, layername, time=None)
     else:
         return None
+        # if nothing is returned need to make sure the js knows about it so that 
+        # error handling can be done properly.
 
 
 ## added by ict4eo for sos

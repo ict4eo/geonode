@@ -31,6 +31,8 @@ from paver.easy import task, options, cmdopts, needs
 from paver.easy import path, sh, info, call_task
 from paver.easy import BuildFailure
 
+from geonode.settings import GEONODE_APPS
+
 try:
     from paver.path import pushd
 except ImportError:
@@ -118,7 +120,7 @@ def update_static(options):
 ])
 def setup(options):
     """Get dependencies and prepare a GeoNode development environment."""
-    sh('pip install -e . --allow-external pyproj --allow-unverified pyproj')
+    sh('pip install -e .')
 
     info(('GeoNode development environment successfully set up.'
           'If you have not set up an administrative account,'
@@ -320,7 +322,7 @@ def test(options):
     """
     Run GeoNode's Unit Test Suite
     """
-    sh("python manage.py test geonode --noinput")
+    sh("python manage.py test %s.tests --noinput" % '.tests '.join(GEONODE_APPS))
 
 
 @task

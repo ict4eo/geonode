@@ -1,0 +1,223 @@
+<style>
+
+body {
+  font: 10px sans-serif;
+}
+
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+.bar {
+  fill: steelblue;
+}
+
+.bar:hover {
+  fill: orangered;
+}
+
+.x.axis path {
+
+}
+
+.x.axis line {
+    stroke: #C0C0C0;
+    stroke-opacity: .5;
+}
+
+.y.axis line {
+    stroke: #C0C0C0;
+    stroke-opacity: .5;
+}
+
+.line {
+  fill: none;
+  stroke: steelblue;
+  stroke-width: 1px;
+}
+
+.plot {
+    fill: rgba(255, 255, 255, 1);
+}
+
+/*D3 tool tips*/
+.d3-tip {
+  line-height: 1;
+  font-weight: bold;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  border-radius: 2px;
+}
+
+/* Creates a small triangle extender for the tooltip */
+.d3-tip:after {
+  box-sizing: border-box;
+  display: inline;
+  font-size: 10px;
+  width: 100%;
+  line-height: 1;
+  color: rgba(0, 0, 0, 0.8);
+  content: "\25BC";
+  position: absolute;
+  text-align: center;
+}
+
+/* Style northward tooltips differently */
+.d3-tip.n:after {
+  margin: -1px 0 0 0;
+  top: 100%;
+  left: 0;
+}
+
+</style>
+<div id='content'></div>
+<script type="text/javascript">
+
+function dateFormat(time) {
+    var parseDate = d3.time.format("%Y-%m-%dT%H:%M:%S.%LZ").parse; 
+    // 2006-01-24T00:00:00.000+02:00
+    var parseDate_offset = d3.time.format("%Y-%m-%dT%H:%M:%S.%L+02:00").parse; 
+    if (parseDate(time) != null) 
+        {
+            time_formatted = parseDate(time)
+        } 
+    else {
+            time_formatted = parseDate_offset(time)
+        }
+        
+    return time_formatted
+}
+
+$(document).ready(function(){
+
+    var url = document.URL;
+    csv_url = url + "/additional_metadata" ; // url link from layer (or map) views
+    $.get(csv_url, function(data, status){
+        //alert("Status" + status+"\ndata "+data); //- FOR TESTING
+        //leaving it as is for when we are returning json from the view instaed of a csv file
+
+        var margin = {top: 20, right: 20, bottom: 30, left: 50},
+            width = 500 - margin.left - margin.right,
+            height = 300 - margin.top - margin.bottom;
+        
+        //scales  
+        var x = d3.time.scale()
+            .range([0, width]);
+
+        var y = d3.scale.linear()
+            .range([height, 0]);
+
+        //Axes
+        var xAxis = d3.svg.axis()
+            .scale(x)
+            .orient("bottom");
+
+        var yAxis = d3.svg.axis()
+            .scale(y)
+            .orient("left");
+            
+        //Tool tip - will implement this after demo ..
+        var tip = d3.tip()
+            .attr('class', 'd3-tip')
+            .offset([-10, 0])
+            .html(function(d) {
+                return "<strong>Frequency:</strong> <span style='color:red'>" + d.frequency + "</span>";
+            });
+            
+        //Construct svg object 
+        var svg = d3.select('#content').append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+        
+        // For background properties of graph area
+        svg.append("rect")
+            .attr("width", "86%")
+            .attr("height", "84%")
+            .attr("class", "plot");
+            
+        svg.call(tip);
+        
+        // Fetch data
+        d3.csv(csv_url, function(error, csv_data) { 
+            try {
+                //keys from header
+                var keys = d3.keys(csv_data[0]);
+
+                var time = keys[0];
+                var foi = keys[1];
+                var obsProp = keys[2];
+
+                data = csv_data.filter(function(row){ 
+                    return row[foi] == Ext.getCmp('fid').value;
+                })
+                       
+                data.forEach(function(d) { 
+                    d[obsProp] = +d[obsProp];
+                    d[time] = dateFormat(d[time]);
+                });
+                
+                //console.log(dataset)
+                
+                // Set scale domains
+                x.domain(d3.extent(data, function(d) { return d[time]; }));
+                y.domain(d3.extent(data, function(d) { return d[obsProp]; }));
+
+                //adding axes to svg element
+                svg.append("g")
+                    .attr("class", "x axis")
+                    .attr("transform", "translate(0," + height + ")")
+                    .call(xAxis)
+                    .append("text")
+                    .attr("x", 6)
+                    .style("text-anchor", "end");
+                    //.text("Time");
+
+                svg.append("g")
+                    .attr("class", "y axis")
+                    .call(yAxis)
+                    .append("text")
+                    .attr("transform", "rotate(-90)")
+                    .attr("y", 6)
+                    .attr("dy", ".71em")
+                    .style("text-anchor", "end")
+                    .text(obsProp); //this will hold the unit of measurement of the variable 
+                    
+                /* at this point we need to introduce a number of functions 
+                and select from one draw either a bar graph or a line graph etc
+                this information will come through from the django views function get_metadata 
+                (additional metadata)
+                */
+
+                // DRAW BAR CHART HERE!
+                svg.selectAll(".bar")
+                    .data(data)
+                .enter().append("rect")
+                    .attr("class", "bar")
+                    .attr("x", function(d) { return x(d[time]); })
+                    .attr("width", width/data.length)//
+                    //.attr("width", x.rangeBand())
+                    .attr("y", function(d) { return y(d[obsProp]); })
+                    .attr("height", function(d) { return height - y(d[obsProp]); })
+                    .append("title").text(function(d) {return "Time: " + d[time] + "\nValue: " + d[obsProp] ;})
+                    //.on('mouseover', tip.show)
+                    //.on('mouseout', tip.hide);
+                    
+            } //end try
+            catch (err) {
+                //alert(err)
+                alert ("No time series available for this layer");
+            } //end catch
+            
+        }); //end csv
+          
+      }); //end GET 
+      
+    }); //end JQuery
+      
+</script>

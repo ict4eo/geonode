@@ -34,6 +34,8 @@ PROJECT_ROOT = os.path.abspath(os.path.dirname(__file__))
 DEBUG = TEMPLATE_DEBUG = True
 
 # Set to True to load non-minified versions of (static) client dependencies
+# Requires to set-up Node and tools that are required for static development 
+# otherwise it will raise errors for the missing non-minified dependencies
 DEBUG_STATIC = False
 
 # This is needed for integration tests, they require
@@ -77,7 +79,7 @@ LANGUAGES = (
     ('el', 'Ελληνικά'),
     ('id', 'Bahasa Indonesia'),
     ('zh-cn', '中文'),
-    ('ja', '日本人'),
+    ('ja', '日本語'),
     ('fa', 'Persian'),
     ('pt', 'Portuguese'),
     ('ru', 'Russian'),
@@ -144,14 +146,30 @@ SITE_ID = 1
 LOGIN_URL = '/account/login/'
 LOGOUT_URL = '/account/logout/'
 
-# Activate the Documents application
-DOCUMENTS_APP = True
+# Documents application
 ALLOWED_DOCUMENT_TYPES = [
     'doc', 'docx','gif', 'jpg', 'jpeg', 'ods', 'odt', 'pdf', 'png', 'ppt', 
     'rar', 'tif', 'tiff', 'txt', 'xls', 'xlsx', 'xml', 'zip', 
 ]
 MAX_DOCUMENT_SIZE = 2 # MB
 
+GEONODE_APPS = (
+    # GeoNode internal apps
+    'geonode.people',
+    'geonode.base',
+    'geonode.layers',
+    'geonode.upload',
+    'geonode.maps',
+    'geonode.proxy',
+    'geonode.security',
+    'geonode.search',
+    'geonode.social',
+    'geonode.catalogue',
+    'geonode.documents',
+
+    # GeoNode Contrib Apps
+    'geonode.contrib.groups',
+)
 
 INSTALLED_APPS = (
 
@@ -191,20 +209,7 @@ INSTALLED_APPS = (
     'announcements',
     'actstream',
     'user_messages',
-
-    # GeoNode internal apps
-    'geonode.people',
-    'geonode.base',
-    'geonode.layers',
-    'geonode.upload',
-    'geonode.maps',
-    'geonode.proxy',
-    'geonode.security',
-    'geonode.search',
-    'geonode.social',
-    'geonode.catalogue',
-    'geonode.documents',
-)
+) + GEONODE_APPS
 
 LOGGING = {
     'version': 1,
@@ -281,7 +286,6 @@ TEMPLATE_CONTEXT_PROCESSORS = (
     'django.core.context_processors.request',
     'django.contrib.messages.context_processors.messages',
     'account.context_processors.account',
-    'pinax_theme_bootstrap_account.context_processors.theme',
     # The context processor below adds things like SITEURL
     # and GEOSERVER_BASE_URL to all pages that use a RequestContext
     'geonode.context_processors.resource_urls',
@@ -316,11 +320,6 @@ def get_user_url(u):
 ABSOLUTE_URL_OVERRIDES = {
     'auth.user': get_user_url
 }
-
-# Redirects to home page after login
-# FIXME(Ariel): I do not know why this setting is needed,
-# it would be best to use the ?next= parameter
-LOGIN_REDIRECT_URL = "/"
 
 #
 # Settings for default search size
@@ -386,9 +385,6 @@ NOSE_ARGS = [
 #
 
 SITEURL = "http://localhost:8000/"
-
-# Default TopicCategory to be used for resources. Use the slug field here
-DEFAULT_TOPICCATEGORY = 'location'
 
 # Topic Categories list should not be modified (they are ISO). In case you 
 # absolutely need it set to True this variable
@@ -566,10 +562,6 @@ MAP_BASELAYERS = [{
 
 }]
 
-LEAFLET_CONFIG = {
-    'TILES_URL': 'http://{s}.tile2.opencyclemap.org/transport/{z}/{x}/{y}.png'
-}
-
 SOCIAL_BUTTONS = True
 
 # Require users to authenticate before using Geonode
@@ -586,13 +578,25 @@ if LOCKDOWN_GEONODE:
 PROXY_ALLOWED_HOSTS = ()
 
 # The proxy to use when making cross origin requests.
-PROXY_URL = '/proxy/?url='
-
+PROXY_URL = '/proxy/?url=' if DEBUG else None
 
 # Load more settings from a file called local_settings.py if it exists
 try:
     from local_settings import *
 except ImportError:
     pass
+
+# Available download formats
+DOWNLOAD_FORMATS_METADATA = [
+    'Atom', 'DIF', 'Dublin Core', 'ebRIM', 'FGDC', 'TC211',
+]
+DOWNLOAD_FORMATS_VECTOR = [
+    'JPEG', 'PDF', 'PNG', 'Zipped Shapefile', 'GML 2.0', 'GML 3.1.1', 'CSV', 
+    'Excel', 'GeoJSON', 'KML', 'View in Google Earth', 'Tiles',
+]
+DOWNLOAD_FORMATS_RASTER = [
+    'JPEG', 'PDF', 'PNG', 'ArcGrid', 'GeoTIFF', 'Gtopo30', 'ImageMosaic', 'KML',
+    'View in Google Earth', 'Tiles',
+]
 
 
