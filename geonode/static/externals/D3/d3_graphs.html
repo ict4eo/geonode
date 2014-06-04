@@ -115,10 +115,11 @@ $(document).ready(function(){
             .attr("fill", "white");
               
         d3.csv(csv_url, function(error, csv_data) { 
+        //d3.csv("/static/externals/D3/sos.csv", function(error, csv_data) {     
             try {
                 //keys from header
                 var keys = d3.keys(csv_data[0]);
-
+                //alert(keys);
                 var time = keys[0];
                 var foi = keys[1];
                 var obsProp = keys[2];
@@ -130,12 +131,15 @@ $(document).ready(function(){
                 data = csv_data.filter(function(row){ 
                     return row[foi] == Ext.getCmp('fid').value;
                 })
+                
+                //data = csv_data;
                        
                 data.forEach(function(d) { 
                     d[obsProp] = +d[obsProp];
                     d[time] = dateFormat(d[time]);
+                    //console.log(d[time]);
                 });
-                //console.log(dataset)
+                
                 x.domain(d3.extent(data, function(d) { return d[time]; }));
                 y.domain(d3.extent(data, function(d) { return d[obsProp]; }));
 
