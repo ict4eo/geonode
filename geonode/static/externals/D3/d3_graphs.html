@@ -132,8 +132,6 @@ $(document).ready(function(){
                     return row[foi] == Ext.getCmp('fid').value;
                 })
                 
-                //data = csv_data;
-                       
                 data.forEach(function(d) { 
                     d[obsProp] = +d[obsProp];
                     d[time] = dateFormat(d[time]);
