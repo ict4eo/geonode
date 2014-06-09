@@ -9,7 +9,7 @@ from geonode.documents.models import Document
 from geonode.layers.models import Layer
 from geonode.layers.views import LAYER_LEV_NAMES
 from geonode.maps.models import Map
-from geonode.search.populate_search_test_data import create_models
+from geonode.base.populate_test_data import create_models
 from geonode.security.enumerations import ANONYMOUS_USERS, AUTHENTICATED_USERS
 from geonode.security.views import _perms_info
 
@@ -75,6 +75,26 @@ class SmokeTest(TestCase):
         self.assertTrue(layer.id in read_perms)
         self.assertTrue(layer.id in write_perms)
 
+    def test_permissions_for_public_groups(self):
+        """
+        If layer is restricted to public groups, only members of the public group should see the object.
+        """
+        bar = self.bar
+        norman = self.norman
+        layer = Layer.objects.all()[0]
+        self.assertFalse(bar.user_is_member(norman))
+        perms = layer.get_all_level_info()
+        perms['authenticated'] = layer.LEVEL_NONE
+        perms['anonymous'] = layer.LEVEL_NONE
+        perms['groups'] = [(bar.slug, layer.LEVEL_WRITE)]
+        layer.set_permissions(perms)
+        bck = get_backends()[0]
+        layers = bck.objects_with_perm(norman, 'layers.view_layer', Layer)
+        self.assertTrue(layer.id not in layers)
+
+        bar.join(norman)
+        layers = bck.objects_with_perm(norman, 'layers.view_layer', Layer)
+        self.assertTrue(layer.id in layers)
 
     def test_group_resource(self):
         """
@@ -135,7 +155,7 @@ class SmokeTest(TestCase):
         objects = layer, document, map_obj
 
         for obj in objects:
-            response = c.get(reverse('resource_permissions', kwargs=dict(type=obj.geonode_type, resource_id=obj.id)))
+            response = c.get(reverse('resource_permissions', kwargs=dict(type=obj.polymorphic_ctype.model, resource_id=obj.id)))
             self.assertEqual(response.status_code, 200)
             js = json.loads(response.content)
             permissions = js.get('permissions', dict())
@@ -151,12 +171,12 @@ class SmokeTest(TestCase):
                            "groups": [[self.bar.slug, obj.LEVEL_WRITE]]}
 
             # Give the bar group permissions
-            response = c.post(reverse('resource_permissions', kwargs=dict(type=obj.geonode_type, resource_id=obj.id)),
+            response = c.post(reverse('resource_permissions', kwargs=dict(type=obj.polymorphic_ctype.model, resource_id=obj.id)),
                               data=json.dumps(permissions), content_type="application/json")
 
             self.assertEqual(response.status_code, 200)
 
-            response = c.get(reverse('resource_permissions', kwargs=dict(type=obj.geonode_type, resource_id=obj.id)))
+            response = c.get(reverse('resource_permissions', kwargs=dict(type=obj.polymorphic_ctype.model, resource_id=obj.id)))
 
             js = json.loads(response.content)
             permissions = js.get('permissions', dict())
@@ -172,12 +192,12 @@ class SmokeTest(TestCase):
                            "groups": {}}
 
             # Update the object's permissions to remove the bar group
-            response = c.post(reverse('resource_permissions', kwargs=dict(type=obj.geonode_type, resource_id=obj.id)),
+            response = c.post(reverse('resource_permissions', kwargs=dict(type=obj.polymorphic_ctype.model, resource_id=obj.id)),
                               data=json.dumps(permissions), content_type="application/json")
 
             self.assertEqual(response.status_code, 200)
 
-            response = c.get(reverse('resource_permissions', kwargs=dict(type=obj.geonode_type, resource_id=obj.id)))
+            response = c.get(reverse('resource_permissions', kwargs=dict(type=obj.polymorphic_ctype.model, resource_id=obj.id)))
 
             js = json.loads(response.content)
             permissions = js.get('permissions', dict())

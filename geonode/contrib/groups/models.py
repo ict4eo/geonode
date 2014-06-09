@@ -1,12 +1,12 @@
 import datetime
 import itertools
+import hashlib
 
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.core.mail import send_mail
 from django.db import models, IntegrityError
 from django.template.loader import render_to_string
-from django.utils.hashcompat import sha_constructor
 from django.utils.translation import ugettext_lazy as _
 from django.contrib.auth.models import User
 from django.contrib.sites.models import Site
@@ -30,12 +30,14 @@ class Group(models.Model):
     
     @classmethod
     def groups_for_user(cls, user):
+        """
+        Returns the groups that user is a member of.  If the user is a superuser, all groups are returned.
+        """
         if user.is_authenticated():
             if user.is_superuser:
                 return cls.objects.all()
-            return cls.objects.exclude(access="private") | cls.objects.filter(groupmember__user=user)
-        else:
-            return cls.objects.exclude(access="private")
+            return cls.objects.filter(groupmember__user=user)
+        return []
     
     def __unicode__(self):
         return self.title
@@ -109,7 +111,7 @@ class Group(models.Model):
             str(datetime.datetime.now()),
             settings.SECRET_KEY
         ]
-        params["token"] = sha_constructor("".join(bits)).hexdigest()
+        params["token"] = hashlib.sha1("".join(bits)).hexdigest()
         
         # If an invitation already exists, re-use it.
         try:

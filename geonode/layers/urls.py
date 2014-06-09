@@ -18,7 +18,9 @@
 #
 #########################################################################
 
-from django.conf.urls.defaults import patterns, url
+from django.conf.urls import patterns, url
+from django.conf import settings
+from django.views.generic import TemplateView
 
 js_info_dict = {
     'packages': ('geonode.layers',),
@@ -26,39 +28,40 @@ js_info_dict = {
 
 urlpatterns = patterns(
     'geonode.layers.views',
-    url(r'^$', 'layer_list', name='layer_browse'),
-    url(r'^tag/(?P<slug>[-\w]+?)/$', 'layer_tag', name='layer_browse_tag'),
-    url(r'^acls/?$', 'layer_acls', name='layer_acls'),
-    url(r'^resolve_user/?$', 'resolve_user', name='layer_resolve_user'),
+    url(r'^$', TemplateView.as_view(template_name='layers/layer_list.html'), name='layer_browse'),
     url(r'^upload$', 'layer_upload', name='layer_upload'),
-    url(r'^download$', 'layer_batch_download', name='layer_batch_download'),
     url(r'^(?P<layername>[^/]*)$', 'layer_detail', name="layer_detail"),
     url(r'^(?P<layername>[^/]*)/metadata$', 'layer_metadata',
         name="layer_metadata"),
     url(r'^(?P<layername>[^/]*)/remove$', 'layer_remove', name="layer_remove"),
     url(r'^(?P<layername>[^/]*)/replace$', 'layer_replace',
         name="layer_replace"),
-    url(r'^(?P<layername>[^/]*)/style$', 'layer_style', name="layer_style"),
-    url(r'^(?P<layername>[^/]*)/style/upload$','layer_style_upload',name='layer_style_upload'),
-    url(r'^(?P<layername>[^/]*)/style/manage$','layer_style_manage',name='layer_style_manage'),
-    url(r'^(?P<layername>[^/]*)/edit-check?$', 'feature_edit_check',
-        name="feature_edit_check"),
+
     #url(r'^api/batch_permissions/?$', 'batch_permissions',
     #    name='batch_permssions'),
     #url(r'^api/batch_delete/?$', 'batch_delete', name='batch_delete'),
 
-    # added by ict4eo for SOS layers
-    # WILL BE: url(r'^(?P<layername>[^/]*)/sos/csv/(?P<time>.+)$', 'sos_layer_csv', name='sos_layer_csv'),
+    ########################### HANDLE SOS & WMS-T ############################
+    # SOS layers
+    # TODO url(r'^(?P<layername>[^/]*)/sos/csv/(?P<time>.+)$', 'sos_layer_csv', name='sos_layer_csv'),
     url(r'^(?P<layername>[^/]*)/sos/csv$', 'layer_sos_csv', name='layer_sos_csv'),
-    # added by ict4eo for layer keywords
     url(r'^(?P<layername>[^/]*)/additional_metadata$', 'get_metadata', name='get_metadata'),
-    # added by ict4eo for ncWMS layers
+    # ncWMS layers
     url(r'^nclayers/$', 'layer_wmst', name='layer_wmst'),
     url(r'^nclayers/search/?$', 'layer_wmst_search', name='layer_wmst_search'),
     url(r'^nclayers/(?P<layerpart1>[^/]+)/(?P<layerpart2>[^/]*)/$', 'ncWms_detail', name="ncWms_detail"),
     #url(r'^nclayers/(?P<layerpart1>[^/]+)/(?P<layerpart2>[^/]*)/$', 'netcdf_download', name="netcdf_download"),
-    # a new regex for layer of type sde:something clone the view to accept this layer, have to go this route because 
-    #geoserver wms-t does not support cascaded wms-t
+    # a new regex for layer of type sde:something clone the view to accept this layer
+    # required because Geoserver WMS-T does not support cascaded WMS-T
     url(r'^nclayers/(?P<layername>[^/]*)/$', 'Wmst_detail', name="Wmst_detail")
-    
 )
+
+# -- Deprecated url routes for Geoserver authentication -- remove after GeoNode 2.1
+# -- Use /gs/acls, gs/resolve_user/, gs/download instead
+if 'geonode.geoserver' in settings.INSTALLED_APPS:
+    urlpatterns = patterns('geonode.geoserver.views',
+        url(r'^acls/?$', 'layer_acls', name='layer_acls_dep'),
+        url(r'^resolve_user/?$', 'resolve_user', name='layer_resolve_user_dep'),
+        url(r'^download$', 'layer_batch_download', name='layer_batch_download_dep'),
+    ) + urlpatterns
+
