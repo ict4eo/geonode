@@ -47,12 +47,13 @@ from geonode.utils import resolve_object
 from geonode.people.forms import ProfileForm, PocForm
 from geonode.security.views import _perms_info_json
 from geonode.documents.models import get_related_documents
-from geonode.utils import ogc_server_settings
 from geoserver.resource import FeatureType
 from geonode.contrib.groups.models import Group
 
 # added by ict4eo for sos
-from ows import sos_swe_data_list, sos_observation_xml
+if 'geonode.geoserver' in settings.INSTALLED_APPS:
+    from geonode.geoserver.helpers import ogc_server_settings
+from geonode.geoserver.ows import sos_swe_data_list, sos_observation_xml
 
 # imports by ict4eo for ncWMS
 from owslib.wms import WebMapService
