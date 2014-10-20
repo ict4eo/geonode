@@ -1,4 +1,4 @@
-{% load i18n avatar_tags announcements_tags %}
+{% load i18n avatar_tags %}
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -8,15 +8,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1"> -->
     <title>{% block title %}{{ SITE_NAME }}{% endblock %}</title>
     {% block head %}
-      <link href="{{ STATIC_URL }}lib/css/assets.min.css" rel="stylesheet"/>
-      <link href="{{ STATIC_URL }}geonode/css/base.css" rel="stylesheet" />
-      <link href="{{ STATIC_URL }}geonode/css/ext-compatibility.css" rel="stylesheet" />
       {% if DEBUG_STATIC %}
       <link href="{{ STATIC_URL }}lib/css/jquery.dataTables.css" rel="stylesheet" />
       <link href="{{ STATIC_URL }}lib/css/select2.css" rel="stylesheet"/>
       <link href="{{ STATIC_URL }}lib/css/bootstrap.min.css" rel="stylesheet"/>
       <link href="{{ STATIC_URL }}lib/css/jquery-ui.css" rel="stylesheet"/>
+      <link href="{{ STATIC_URL }}lib/css/datepicker.css" rel="stylesheet"/>
+      {% else %}
+      <link href="{{ STATIC_URL }}lib/css/assets.min.css" rel="stylesheet"/> 
       {% endif %}
+      <link href="{{ STATIC_URL }}geonode/css/ext-compatibility.css" rel="stylesheet" />
+      <link href="{{ STATIC_URL }}geonode/css/base.css" rel="stylesheet" />
       {% block extra_head %}
       {% endblock %}
     {% endblock %}
@@ -35,6 +37,7 @@
         </div>
         <div class="navbar-collapse collapse">
           <ul class="nav navbar-nav">
+            {% block tabs %}
             <li id="nav_layers">
               <a href="{% url "layer_browse" %}">{% trans "Layers" %}</a>
             </li>
@@ -42,7 +45,7 @@
               <a href="{% url "maps_browse" %}">{% trans "Maps" %}</a>
             </li>
             <li id="nav_documents">
-              <a href="{% url "documents_browse" %}">{% trans "Documents" %}</a>
+              <a href="{% url "document_browse" %}">{% trans "Documents" %}</a>
             </li>
             <li id="nav_people">
               <a href="{% url "profile_browse" %}">{% trans "People" %}</a>
@@ -50,16 +53,24 @@
             <li id="nav_groups">
               <a href="{% url "group_list" %}">{% trans "Groups" %}</a>
             </li>
+            {% endblock %}
           </ul>
           <form class="col-md-3" id="search" action="{% url "search" %}">
             <div class="input-group">
+              {% if HAYSTACK_SEARCH %}
+              <input id="search_input" type="text" placeholder="Search" class="form-control" name="q">
+              {% else %}
               <input id="search_input" type="text" placeholder="Search" class="form-control" name="title__contains">
+              {% endif %}
               <span class="input-group-btn">
                 <button class="btn btn-primary" type="submit"><i class="fa fa-search"></i></button>
               </span>
             </div>
           </form>
           <ul class="nav navbar-nav navbar-right">
+            {% if not user.is_authenticated and REGISTRATION_OPEN %}
+                <li><a href="{% url "account_signup" %}">{% trans "Register" %}</a></li>
+            {% endif %}
             <li class="dropdown">
               {% if user.is_authenticated %}
               <li class="user-avatar">
@@ -100,7 +111,7 @@
                 </ul>
               </li>
               {% else %}
-              <a href="#" class="dropdown-toggle" data-toggle="dropdown">Sign in <b class="caret"></b></a>
+              <a href="#" class="dropdown-toggle" data-toggle="dropdown">{% trans "Sign in" %} <b class="caret"></b></a>
               <ul class="dropdown-menu">
                 <li>
                   <form role="form" action="{% url "account_login" %}?next={{ request.path }}" method="post">
@@ -124,10 +135,6 @@
               {% endif %}
             </li>
           </ul>
-            {% if REGISTRATION_OPEN %}
-            <li><a href="{% url "account_signup" %}">{% trans "Register" %}</a></li>
-            {% endif %}
-          </ul>
         </div><!--/.nav-collapse -->
       </div>
     </div>
@@ -136,20 +143,8 @@
 
   <div id="wrap">
     {% block middle %}
-    {% announcements as site_wide_announcements %}
     <div class="container">
-      {% if site_wide_announcements %}
-      <div id="site_wide_announcements">
-        {% for announcement in site_wide_announcements %}
-        <div class="alert alert-block announcement">
-          <a type="button" class="close" data-dismiss="alert" data-dismiss-url="{% url "announcements_dismiss" announcement.pk %}" href="#">×</a>
-          <h4><a href="{{ announcement.get_absolute_url }}">{{ announcement }}</a></h4>
-          <p><small><em>{{ announcement.creation_date }}</em></small></p>
-          <div>{{ announcement.content }}</div>
-        </div>
-        {% endfor %}
-      </div>
-      {% endif %}
+      {% include "_announcements.html" %}
       {% block body_outer %}
       <div class="row">
         <div class="col-md-8">
@@ -221,7 +216,7 @@
             hideAfter: 200,
             minimumCharacters: 1,
             placeholder: '{% trans 'Type your search here ...' %}',
-            appendAutocomplete: $('#search_input'),
+            appendAutocomplete: $('#search_input')
         });
         $('#search_input').bind('selectChoice', function(e, choice, autocomplete) {
             if(choice[0].children[0] == undefined) {
@@ -233,6 +228,5 @@
     <script type="text/javascript" src="{% url "django.views.i18n.javascript_catalog" %}"></script>
     <script type="text/javascript" src="{% url "lang" %}"></script>
 
-    </style>
   </body>
 </html>

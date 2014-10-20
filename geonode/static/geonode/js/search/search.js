@@ -2,52 +2,91 @@
 
 (function(){
 
-  var module = angular.module('main_search', ['leaflet-directive'], function($locationProvider) {
+  var module = angular.module('geonode_main_search', [], function($locationProvider) {
       $locationProvider.html5Mode(true);
 
       // make sure that angular doesn't intercept the page links
       angular.element("a").prop("target", "_self");
     });
 
+    // Used to set the class of the filters based on the url parameters
+    module.set_initial_filters_from_query = function (data, url_query, filter_param){
+        for(var i=0;i<data.length;i++){
+            if( url_query == data[i][filter_param] || url_query.indexOf(data[i][filter_param] ) != -1){
+                data[i].active = 'active';
+            }else{
+                data[i].active = '';
+            }
+        }
+        return data;
+    }
+
+  // Load categories and keywords
+  module.load_categories = function ($http, $rootScope, $location){
+        var params = typeof FILTER_TYPE == 'undefined' ? {} : {'type': FILTER_TYPE};
+        $http.get(CATEGORIES_ENDPOINT, {params: params}).success(function(data){
+            if($location.search().hasOwnProperty('category__identifier__in')){
+                data.objects = module.set_initial_filters_from_query(data.objects,
+                    $location.search()['category__identifier__in'], 'identifier');
+            }
+            $rootScope.categories = data.objects;
+            if (HAYSTACK_FACET_COUNTS && $rootScope.query_data) {
+                module.haystack_facets($http, $rootScope, $location);
+            }
+        });
+
+        $http.get(KEYWORDS_ENDPOINT, {params: params}).success(function(data){
+            if($location.search().hasOwnProperty('keywords__slug__in')){
+                data.objects = module.set_initial_filters_from_query(data.objects,
+                    $location.search()['keywords__slug__in'], 'slug');
+            }
+            $rootScope.keywords = data.objects;
+            if (HAYSTACK_FACET_COUNTS && $rootScope.query_data) {
+                module.haystack_facets($http, $rootScope, $location);
+            }
+        });
+    }
+
+  // Update facet counts for categories and keywords
+  module.haystack_facets = function($http, $rootScope, $location) {
+      var data = $rootScope.query_data;
+      if ("categories" in $rootScope) {
+          $rootScope.category_counts = data.meta.facets.category;
+          for (var id in $rootScope.categories) {
+              var category = $rootScope.categories[id];
+              if (category.identifier in $rootScope.category_counts) {
+                  category.count = $rootScope.category_counts[category.identifier]
+              } else {
+                  category.count = 0;
+              }
+          }
+      }
+
+      if ("keywords" in $rootScope) {
+          $rootScope.keyword_counts = data.meta.facets.keywords;
+          for (var id in $rootScope.keywords) {
+              var keyword = $rootScope.keywords[id];
+              if (keyword.slug in $rootScope.keyword_counts) {
+                  keyword.count = $rootScope.keyword_counts[keyword.slug]
+              } else {
+                  keyword.count = 0;
+              }
+          }
+      }
+  }
+
   /*
   * Load categories and keywords
   */
   module.run(function($http, $rootScope, $location){
-
-    // Used to set the class of the filters based on the url parameters
-    function set_initial_filters_from_query(data, url_query, filter_param){
-      for(var i=0;i<data.length;i++){
-        if( url_query == data[i][filter_param] || url_query.indexOf(data[i][filter_param] ) != -1){
-          data[i].active = 'active';
-        }else{
-          data[i].active = '';
-        }
-     }
-     return data;
-    }
-
     /*
     * Load categories and keywords if the filter is available in the page
     * and set active class if needed
     */
     if ($('#categories').length > 0){
-      var params = typeof FILTER_TYPE == 'undefined' ? {} : {'type': FILTER_TYPE};
-      $http.get(CATEGORIES_ENDPOINT, {params: params}).success(function(data){
-        if($location.search().hasOwnProperty('category__identifier__in')){
-          data.objects = set_initial_filters_from_query(data.objects, 
-            $location.search()['category__identifier__in'], 'identifier');
-        }  
-        $rootScope.categories = data.objects;            
-      });
-
-      $http.get(KEYWORDS_ENDPOINT, {params: params}).success(function(data){
-        if($location.search().hasOwnProperty('keywords__slug__in')){
-          data.objects = set_initial_filters_from_query(data.objects, 
-            $location.search()['keywords__slug__in'], 'slug');
-        }
-        $rootScope.keywords = data.objects;
-      });
+       module.load_categories($http, $rootScope, $location);
     }
+
     // Activate the type filters if in the url
     if($location.search().hasOwnProperty('type__in')){
       var types = $location.search()['type__in'];
@@ -70,21 +109,47 @@
   });
 
   /*
-  * Main search controller 
+  * Main search controller
   * Load data from api and defines the multiple and single choice handlers
   * Syncs the browser url with the selections
   */
-  module.controller('MainController', function($scope, $location, $http, Configs, leafletData){
+  module.controller('geonode_search_controller', function($injector, $scope, $location, $http, Configs){
     $scope.query = $location.search();
     $scope.query.limit = $scope.query.limit || CLIENT_RESULTS_LIMIT;
     $scope.query.offset = $scope.query.offset || 0;
     $scope.page = Math.round(($scope.query.offset / $scope.query.limit) + 1);
-    
+
+
     //Get data from apis and make them available to the page
     function query_api(data){
       $http.get(Configs.url, {params: data || {}}).success(function(data){
         $scope.results = data.objects;
         $scope.total_counts = data.meta.total_count;
+        $scope.$root.query_data = data;
+        if (HAYSTACK_SEARCH) {
+          if ($location.search().hasOwnProperty('q')){
+            $scope.text_query = $location.search()['q'].replace(/\+/g," ");
+          }
+        } else {
+          if ($location.search().hasOwnProperty('title__contains')){
+            $scope.text_query = $location.search()['title__contains'].replace(/\+/g," ");
+          }
+        }
+
+        //Update facet/keyword/category counts from search results
+        if (HAYSTACK_FACET_COUNTS){
+            module.haystack_facets($http, $scope.$root, $location);
+            $("#types").find("a").each(function(){
+                if ($(this)[0].id in data.meta.facets.subtype) {
+                    $(this).find("span").text(data.meta.facets.subtype[$(this)[0].id]);
+                }
+                else if ($(this)[0].id in data.meta.facets.type) {
+                    $(this).find("span").text(data.meta.facets.type[$(this)[0].id]);
+                } else {
+                    $(this).find("span").text("0");
+                }
+            });
+        }
       });
     };
     query_api($scope.query);
@@ -131,11 +196,13 @@
     * End pagination
     */
 
-    
-    // Keep in sync the page location with the query object
-    $scope.$watch('query', function(){
-      $location.search($scope.query);
-    }, true);
+
+    if (!Configs.hasOwnProperty("disableQuerySync")) {
+        // Keep in sync the page location with the query object
+        $scope.$watch('query', function(){
+          $location.search($scope.query);
+        }, true);
+    }
 
     /*
     * Add the selection behavior to the element, it adds/removes the 'active' class
@@ -215,6 +282,45 @@
     }
 
     /*
+    * Text search management
+    */
+    var text_autocomplete = $('#text_search_input').yourlabsAutocomplete({
+          url: AUTOCOMPLETE_URL,
+          choiceSelector: 'span',
+          hideAfter: 200,
+          minimumCharacters: 1,
+          appendAutocomplete: $('#text_search_input')
+    });
+    $('#text_search_input').bind('selectChoice', function(e, choice, text_autocomplete) {
+          if(choice[0].children[0] == undefined) {
+              $('#text_search_input').val(choice[0].innerHTML);
+              $('#text_search_btn').click();
+          }
+    });
+
+    $('#text_search_btn').click(function(){
+        if (HAYSTACK_SEARCH)
+            $scope.query['q'] = $('#text_search_input').val();
+        else
+            $scope.query['title__contains'] = $('#text_search_input').val();
+        query_api($scope.query);
+    });
+
+
+    $scope.feature_select = function($event){
+      var element = $($event.target);
+      var article = $(element.parents('article')[0]);
+      if (article.hasClass('resource_selected')){
+        element.html('Select');
+        article.removeClass('resource_selected');
+      }
+      else{
+        element.html('Deselect');
+        article.addClass('resource_selected');
+      } 
+    };
+
+    /*
     * Date management
     */
 
@@ -247,7 +353,7 @@
     /*
     * Spatial search
     */
-    if($('.leaflet_map').length > 0){
+    if ($('.leaflet_map').length > 0) {
       angular.extend($scope, {
         layers: {
           baselayers: {
@@ -273,7 +379,8 @@
         }
       });
 
-      var map = leafletData.getMap();
+      var leafletData = $injector.get('leafletData'),
+          map = leafletData.getMap();
 
       map.then(function(map){
         map.on('moveend', function(){

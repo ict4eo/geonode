@@ -1,7 +1,6 @@
 {% extends "services/services_base.html" %}
 {% load i18n %}
-{% load geonode_auth %}
-
+{% load guardian_tags %}
 {% block head %}
 {% include "geonode/ext_header.html" %}
 {% include "geonode/app_header.html" %}
@@ -11,7 +10,6 @@
 var app;
 {% autoescape off %}
 Ext.onReady(function() {
-{% has_obj_perm user service "maps.change_service_permissions" as can_change_permissions %}
 
 {% if can_change_permissions %}
        new GeoNode.WorldMapPermissionsEditor({
@@ -46,7 +44,7 @@ Ext.onReady(function() {
   <p><strong>{% trans "URL:" %}</strong> {{service.base_url}}</p>
   <p><strong>{% trans "Abstract:" %}</strong> {{service.abstract}}</p>
   <p><strong>{% trans "Keywords:" %}</strong> {{ service.keywords.all|join:", " }}</p>
-  <p><strong>{% trans "Contact:" %}</strong> <a href="{{ service.owner.get_profile.get_absolute_url }}">{{ service.owner }}</a></p>
+  <p><strong>{% trans "Contact:" %}</strong> <a href="{% url "profile_detail" service.owner.username %}">{{ service.owner }}</a></p>
 
     {% autoescape off %}
     {%  if services %}
@@ -103,21 +101,25 @@ Ext.onReady(function() {
 </div>
 {% endblock %}
 {% block sidebar %}
-<div id="sidebar" class="threecol">
 
-    {% has_obj_perm user service "maps.change_service" as can_change %}
-    {% has_obj_perm user service "maps.delete_service" as can_remove %}
-    {% has_obj_perm user service "maps.change_service_permissions" as can_change_permissions %}
-    {% if can_change or can_remove or can_change_permissions %}
-        <h3>{% trans "Manage" %}</h3>
-        <ul>
-        {% if can_change %}
-            <li><a href="{% url "edit_service" service.id %}">{% trans "Edit Service Metadata" %}</a></li>
+
+    {% get_obj_perms request.user for service as "resource_perms" %}
+
+    {% if "change_service" in resource_perms or "remove_service" in resource_perms or "change_service_permissions" in resource_perms %}
+    <ul class="list-group">
+        <li class="list-group-item"><h3>{% trans "Manage" %}</h3></li>
+
+        {% if "change_service" in resource_perms %}
+            <li class="list-group-item"><a class="btn btn-default btn-md btn-block" href="{% url "edit_service" service.id %}">{% trans "Edit Service Metadata" %}</a></li>
         {% endif %}
-        {% if can_remove %}
-            <li><a href="{% url "remove_service" service.id %}">{% trans "Remove Service" %}</a></li>
+        {% if  "remove_service" or "delete_service" in resource_perms %}
+            <li class="list-group-item"><a class="btn btn-default btn-md btn-block" href="{% url "remove_service" service.id %}">{% trans "Remove Service" %}</a></li>
         {% endif %}
-        </ul>
+      </ul>
     {% endif %}
-</div>
+
+
+
+
+
 {% endblock %}

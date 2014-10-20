@@ -1,6 +1,4 @@
-from django.core.exceptions import ImproperlyConfigured
 from django.test import TestCase
-from django.test.utils import override_settings
 from geonode.base.models import ResourceBase
 
 
@@ -10,9 +8,11 @@ class ThumbnailTests(TestCase):
         self.rb = ResourceBase.objects.create()
 
     def tearDown(self):
-        t = self.rb.thumbnail
-        if t:
-            t.delete()
+        # if the thumbnail hasn't already been removed:
+        if self.rb.thumbnail_set.exists():
+            t = self.rb.thumbnail_set.get()
+            if t:
+                t.delete()
 
     def test_initial_behavior(self):
         self.assertFalse(self.rb.has_thumbnail())

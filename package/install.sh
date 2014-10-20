@@ -38,7 +38,7 @@ function setup_directories() {
 }
 
 function reorganize_configuration() {
-    cp -rp $INSTALL_DIR/support/geonode.apache $APACHE_SITES/geonode
+    cp -rp $INSTALL_DIR/support/geonode.apache $APACHE_SITES/geonode.conf
     cp -rp $INSTALL_DIR/support/geonode.wsgi $GEONODE_WWW/wsgi/
     cp -rp $INSTALL_DIR/support/geonode.robots $GEONODE_WWW/robots.txt
     cp -rp $INSTALL_DIR/GeoNode*.zip $GEONODE_SHARE
@@ -105,7 +105,7 @@ function setup_django_every_time() {
     # django-admin.py is what should be used for manual installations
     # I am putting django-admin by default and filing a ticket:
     # https://github.com/GeoNode/geonode/issues/1180
-    geonode syncdb --noinput --all
+    geonode syncdb --noinput
     geonode collectstatic --noinput
 
     # Create an empty uploads dir
@@ -124,15 +124,15 @@ function setup_apache_once() {
     chown www-data -R $GEONODE_WWW
     a2enmod proxy_http
         
-    sed -i '1d' $APACHE_SITES/geonode
-    sed -i "1i WSGIDaemonProcess geonode user=www-data threads=15 processes=2" $APACHE_SITES/geonode
+    sed -i '1d' $APACHE_SITES/geonode.conf
+    sed -i "1i WSGIDaemonProcess geonode user=www-data threads=15 processes=2" $APACHE_SITES/geonode.conf
 
     #FIXME: This could be removed if setup_apache_every_time is called after setup_apache_once
     $APACHE_SERVICE restart
 }
 
 function setup_apache_every_time() {
-    a2dissite default
+    a2dissite 000-default
 
     #FIXME: This could be removed if setup_apache_every_time is called after setup_apache_once
     a2enmod proxy_http
